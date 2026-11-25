@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pl" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CompanyVerificator – Centrum Compliance & AML{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/custom.css?v=1">
+    <script src="/static/js/htmx.min.js"></script>
+    <script defer src="/static/js/alpine.min.js"></script>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased">
+
+    {% include "components/navbar.html" %}
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-4 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center space-x-2">
+                <strong class="text-slate-800">CompanyVerificator</strong>
+                <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[11px] border border-slate-200">v{{ app_version }}</span>
+                <span class="text-slate-400">•</span>
+                <span>Procedura Należytej Staranności AML / VAT / Sankcje</span>
+            </div>
+            <div class="flex items-center space-x-3 text-[11px]">
+                <span>Silnik: Deterministyczny (Zero-Hallucination)</span>
+                <span>•</span>
+                <span>Retencja dowodowa: 5 lat</span>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

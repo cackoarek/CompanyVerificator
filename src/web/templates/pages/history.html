@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Rejestr Weryfikacji – CompanyVerificator{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">📋 Rejestr Należytej Staranności</h1>
+      <p class="text-xs text-slate-500 mt-1">Wszystkie zarchiwizowane karty weryfikacji podmiotów wraz z możliwością filtrowania i wglądu w Audit Trail.</p>
+    </div>
+  </div>
+
+  <!-- Filtry HTMX -->
+  <form hx-get="/historia/lista"
+        hx-target="#history-table-wrapper"
+        hx-trigger="change, submit, keyup delay:300ms from:input[name='q']"
+        class="bg-white rounded-2xl border border-slate-200 p-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end text-xs">
+    <div class="md:col-span-2">
+      <label class="block font-bold text-slate-700 mb-1">Szukaj (NIP / KRS / nazwa)</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Wpisz NIP, KRS lub fragment nazwy..."
+             class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs">
+    </div>
+    <div>
+      <label class="block font-bold text-slate-700 mb-1">Poziom ryzyka</label>
+      <select name="risk" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs">
+        <option value="">Wszystkie poziomy</option>
+        <option value="NISKIE" {% if risk == 'NISKIE' %}selected{% endif %}>🟢 Niskie</option>
+        <option value="SREDNIE" {% if risk == 'SREDNIE' %}selected{% endif %}>🟡 Średnie</option>
+        <option value="WYSOKIE" {% if risk == 'WYSOKIE' %}selected{% endif %}>🟠 Wysokie</option>
+        <option value="KRYTYCZNE_STOP" {% if risk == 'KRYTYCZNE_STOP' %}selected{% endif %}>🛑 Krytyczne STOP</option>
+      </select>
+    </div>
+    <label class="inline-flex items-center space-x-2 py-2 cursor-pointer">
+      <input type="checkbox" name="offline" value="true" {% if offline %}checked{% endif %} class="rounded border-slate-300 text-blue-600">
+      <span class="font-semibold text-slate-700">Tylko niekompletne (offline)</span>
+    </label>
+  </form>
+
+  <div id="history-table-wrapper" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    {% include "partials/history_table.html" %}
+  </div>
+
+</div>
+{% endblock %}

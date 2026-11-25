@@ -1,0 +1,225 @@
+<div class="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden fade-in p-6 space-y-5">
+
+  <!-- Nagłówek karty -->
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between border-b border-slate-100 pb-4 gap-3">
+    <div>
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 class="text-base font-bold text-slate-900">{{ karta.nazwa }}</h3>
+        <span class="text-[11px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{{ karta.forma_prawna }}</span>
+      </div>
+      <p class="text-xs text-slate-500 font-mono mt-1">
+        {{ karta.identifier_kind }}: <strong class="text-slate-800">{{ karta.identifier }}</strong>
+        {% if karta.nip %} | NIP: {{ karta.nip }}{% endif %}
+        {% if karta.regon %} | REGON: {{ karta.regon }}{% endif %}
+        {% if karta.krs %} | KRS: {{ karta.krs }}{% endif %}
+      </p>
+      {% if karta.adres %}
+        <p class="text-xs text-slate-500 mt-1">📍 {{ karta.adres }}</p>
+      {% endif %}
+    </div>
+
+    <div class="flex flex-col items-start md:items-end gap-1.5">
+      {% set r = karta.poziom_ryzyka.value %}
+      {% if r == 'NISKIE' %}
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+          🟢 NISKIE RYZYKO ({{ karta.risk_score }}/100)
+        </span>
+      {% elif r == 'SREDNIE' %}
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+          🟡 ŚREDNIE RYZYKO ({{ karta.risk_score }}/100)
+        </span>
+      {% elif r == 'WYSOKIE' %}
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300">
+          🟠 WYSOKIE RYZYKO ({{ karta.risk_score }}/100)
+        </span>
+      {% else %}
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
+          🛑 KRYTYCZNE – STOP ({{ karta.risk_score }}/100)
+        </span>
+      {% endif %}
+      <span class="text-[11px] font-mono text-slate-500">
+        Decyzja: <strong>{{ karta.decyzja.value }}</strong> • Analityk: <strong>{{ karta.analyst_status.value }}</strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- Baner niekompletnej weryfikacji (błąd sieci) -->
+  {% if karta.blad_polaczenia %}
+    <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl space-y-2 text-xs">
+      <div class="font-bold text-amber-900">⚠️ WERYFIKACJA NIEKOMPLETNA – BŁĄD POŁĄCZENIA Z REJESTRAMI</div>
+      <p class="text-amber-800">
+        Niedostępne źródła: <strong>{{ karta.niekompletne_zrodla|join(', ') }}</strong> ({{ karta.komunikat_bledu or 'brak sieci' }}).
+        Nie zatwierdzaj płatności ani współpracy na podstawie niepełnych danych.
+      </p>
+      <form hx-post="/verify" hx-target="#verification-result" hx-indicator="#verify-spinner">
+        <input type="hidden" name="identifier" value="{{ karta.identifier }}">
+        {% if karta.zweryfikowany_rachunek %}<input type="hidden" name="rachunek" value="{{ karta.zweryfikowany_rachunek }}">{% endif %}
+        {% if karta.kwota_transakcji %}<input type="hidden" name="kwota" value="{{ karta.kwota_transakcji }}">{% endif %}
+        <input type="hidden" name="force" value="true">
+        <button type="submit" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs cursor-pointer">
+          🔄 Ponów weryfikację na żywo (--force)
+        </button>
+      </form>
+    </div>
+  {% endif %}
+
+  {% if decision_error %}
+    <div class="bg-red-50 border border-red-200 text-red-800 text-xs rounded-xl p-3 font-semibold">
+      ⛔ {{ decision_error }}
+    </div>
+  {% endif %}
+
+  <!-- Siatka rejestrów -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+      <span class="text-[10px] font-bold uppercase text-slate-400 block">1. Rejestr (KRS / CEIDG / VIES)</span>
+      <div class="font-bold {% if karta.status_rejestru == 'AKTYWNY' %}text-emerald-700{% elif karta.status_rejestru in ['BLAD_POLACZENIA', 'MF_NIEDOSTEPNY_CHWILOWO'] %}text-amber-700{% elif karta.status_rejestru in ['WYKRESLONY', 'NIEZNALEZIONY'] %}text-red-700{% else %}text-slate-700{% endif %}">
+        {% if karta.status_rejestru == 'MF_NIEDOSTEPNY_CHWILOWO' %}⚠️ MF chwilowo niedostępny (spróbuj ponownie)
+        {% elif karta.status_rejestru == 'BLAD_POLACZENIA' %}⚠️ Błąd połączenia z rejestrem
+        {% elif karta.status_rejestru == 'AKTYWNY' %}✅ Aktywny
+        {% elif karta.status_rejestru == 'WYKRESLONY' %}🚫 Wykreślony
+        {% elif karta.status_rejestru == 'ZAWIESZONY' %}⏸️ Zawieszony
+        {% elif karta.status_rejestru == 'NIEZNALEZIONY' %}❓ Nie znaleziono w rejestrze
+        {% else %}{{ karta.status_rejestru }}{% endif %}
+      </div>
+      <p class="text-[11px] text-slate-500">{{ karta.zrodlo_rejestru }}</p>
+      {% if karta.pkd_glowny %}<p class="text-[11px] text-slate-500 font-mono">PKD: {{ karta.pkd_glowny }}</p>{% endif %}
+    </div>
+
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+      <span class="text-[10px] font-bold uppercase text-slate-400 block">2. Status VAT</span>
+      <div class="font-bold {% if karta.platnik_vat_czynny %}text-emerald-700{% elif 'chwilowo' in karta.status_vat or 'niedostępny' in karta.status_vat %}text-amber-700{% else %}text-amber-700{% endif %}">
+        {{ karta.status_vat }}
+      </div>
+      {% if karta.mf_request_id %}
+        <p class="text-[11px] text-slate-500 font-mono truncate" title="{{ karta.mf_request_id }}">MF ID: {{ karta.mf_request_id }}</p>
+      {% endif %}
+    </div>
+
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+      <span class="text-[10px] font-bold uppercase text-slate-400 block">3. Rachunek (art. 22p PIT)</span>
+      <div class="font-bold {% if karta.status_rachunku.value == 'ZGODNY_BIALA_LISTA' %}text-emerald-700{% elif karta.status_rachunku.value == 'BRAK_NA_BIALEJ_LISCIE' %}text-red-700{% elif karta.status_rachunku.value == 'BLAD_POLACZENIA_MF' %}text-amber-700{% else %}text-slate-600{% endif %}">
+        {% if karta.status_rachunku.value == 'ZGODNY_BIALA_LISTA' %}✅ Zgodny — rachunek w wykazie MF
+        {% elif karta.status_rachunku.value == 'BRAK_NA_BIALEJ_LISCIE' %}🚫 Brak na Białej Liście MF
+        {% elif karta.status_rachunku.value == 'BLAD_POLACZENIA_MF' %}⚠️ Nie zweryfikowano — MF chwilowo niedostępny
+        {% elif karta.status_rachunku.value == 'NIE_PODANO' %}— Nie podano numeru rachunku
+        {% elif karta.status_rachunku.value == 'NIE_DOTYCZY_ZAGRANICZNY' %}— Podmiot zagraniczny
+        {% else %}{{ karta.status_rachunku.value }}{% endif %}
+      </div>
+      <p class="text-[11px] text-slate-500 font-mono truncate">
+        {% if karta.zweryfikowany_rachunek %}{{ karta.zweryfikowany_rachunek }}
+        {% elif karta.rachunki_zgloszone_mf %}Kont w MF: {{ karta.rachunki_zgloszone_mf|length }}
+        {% else %}—{% endif %}
+      </p>
+    </div>
+
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+      <span class="text-[10px] font-bold uppercase text-slate-400 block">4. Sankcje & CRBR</span>
+      <div class="font-bold {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_inne %}text-red-700{% else %}text-emerald-700{% endif %}">
+        {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_inne %}🛑 TRAFIENIE SANKCYJNE{% else %}🟢 Brak wpisów (Czysty){% endif %}
+      </div>
+      <p class="text-[11px] text-slate-500">CRBR: <strong>{{ karta.crbr_status }}</strong></p>
+    </div>
+  </div>
+
+  <!-- Reprezentacja i UBO -->
+  {% if karta.reprezentacja or karta.beneficjenci_rzeczywisci %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+      <div class="font-bold text-slate-700 mb-1">Reprezentacja (KRS / właściciel):</div>
+      <p class="text-slate-600">{{ karta.reprezentacja|join(', ') if karta.reprezentacja else 'Brak danych' }}</p>
+    </div>
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+      <div class="font-bold text-slate-700 mb-1">Beneficjenci rzeczywiści (CRBR):</div>
+      <p class="text-slate-600">{{ karta.beneficjenci_rzeczywisci|join(', ') if karta.beneficjenci_rzeczywisci else 'Nie dotyczy / brak wpisu' }}</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Czynniki ryzyka (Risk Matrix) -->
+  {% if karta.risk_factors %}
+  <div class="border border-slate-200 rounded-xl overflow-hidden">
+    <div class="bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 border-b border-slate-200">
+      Macierz Czynników Ryzyka (Należyta Staranność)
+    </div>
+    <div class="divide-y divide-slate-100 text-xs">
+      {% for rf in karta.risk_factors %}
+      <div class="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <span class="font-bold text-slate-900">{{ rf.title }}</span>
+          <span class="text-[11px] text-slate-500 block">{{ rf.recommendation }} • <em>{{ rf.legal_basis }}</em></span>
+        </div>
+        <span class="font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 shrink-0">+{{ rf.points }} pkt</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Uzasadnienie i akcje analityka -->
+  <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+    <div class="flex items-center justify-between">
+      <span class="font-bold text-slate-800">Konkluzja silnika compliance:</span>
+      <span class="text-slate-400 font-mono">{{ karta.data_weryfikacji_tekst }}</span>
+    </div>
+    <p class="text-slate-700">{{ karta.uzasadnienie_decyzji }}</p>
+    {% if karta.uwagi_dodatkowe %}
+      <p class="text-slate-600 whitespace-pre-line border-t border-slate-200 pt-2 mt-2">{{ karta.uwagi_dodatkowe }}</p>
+    {% endif %}
+  </div>
+
+  <!-- Formularz decyzji analityka (Audit Trail) -->
+  <div class="p-4 bg-white rounded-xl border border-slate-200 space-y-3 text-xs">
+    <div class="font-bold text-slate-800">✍️ Decyzja Analityka Compliance (Audit Trail)</div>
+    <form hx-post="/karta/{{ karta.id }}/decision" hx-target="#verification-result" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Status decyzji</label>
+        <select name="analyst_status" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs">
+          <option value="PENDING_EXPLANATION" {% if karta.analyst_status.value == 'PENDING_EXPLANATION' %}selected{% endif %}>Oczekuje na wyjaśnienie</option>
+          <option value="APPROVED_AFTER_REVIEW" {% if karta.analyst_status.value == 'APPROVED_AFTER_REVIEW' %}selected{% endif %}>Zatwierdzona po wyjaśnieniu</option>
+          <option value="REJECTED" {% if karta.analyst_status.value == 'REJECTED' %}selected{% endif %}>Odrzucona / Blokada</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Osoba decyzyjna</label>
+        <input type="text" name="actor" value="Analityk Compliance" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs">
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Notatka audytowa (np. ZAW-NR)</label>
+        <input type="text" name="note" placeholder="Uzasadnienie / nr ZAW-NR..." class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs">
+      </div>
+      <button type="submit" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg cursor-pointer">
+        Zapisz decyzję
+      </button>
+    </form>
+
+    {% if audit_events %}
+    <div class="pt-2 border-t border-slate-100 space-y-1 text-[11px] text-slate-500">
+      <div class="font-bold text-slate-600">Dziennik zmian:</div>
+      {% for ev in audit_events[:5] %}
+        <div>• <span class="font-mono">{{ ev.created_at[:19]|replace('T',' ') }}</span> — <strong>{{ ev.actor }}</strong>: {{ ev.action }} → <strong>{{ ev.new_decision }}</strong> {% if ev.note %}({{ ev.note }}){% endif %}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Stopka z SHA-256 i eksportami -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-3 border-t border-slate-100 gap-3 text-xs">
+    <div class="flex items-center space-x-2 text-slate-500 font-mono text-[11px]">
+      <span>SHA-256:</span>
+      <code class="bg-slate-100 text-slate-800 px-2 py-0.5 rounded" title="{{ karta.sha256_hash }}">{{ karta.sha256_hash[:18] }}...{{ karta.sha256_hash[-8:] }}</code>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <a href="/karta/{{ karta.id }}/pdf" target="_blank" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs">
+        📄 Karta PDF (A4)
+      </a>
+      <a href="/karta/{{ karta.id }}/md" target="_blank" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-semibold text-xs">
+        Markdown
+      </a>
+      <a href="/karta/{{ karta.id }}/json" target="_blank" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-semibold text-xs">
+        JSON
+      </a>
+    </div>
+  </div>
+
+</div>

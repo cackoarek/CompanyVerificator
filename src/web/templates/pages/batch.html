@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Weryfikacja Wsadowa – CompanyVerificator{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="border-b border-slate-200 pb-4">
+    <h1 class="text-xl font-bold text-slate-900">📥 Weryfikacja Wsadowa Kontrahentów</h1>
+    <p class="text-xs text-slate-500 mt-1">
+      Prześlij plik CSV / XLSX (kolumny np. <code>nip</code>, <code>nazwa</code>, <code>rachunek</code>, <code>kwota</code>) lub wklej listę identyfikatorów (po jednym w linii).
+    </p>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+    <form hx-post="/wsadowa/start"
+          hx-target="#batch-result-container"
+          hx-encoding="multipart/form-data"
+          hx-indicator="#batch-spinner"
+          class="space-y-4">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">
+            Plik CSV lub Excel (.xlsx)
+          </label>
+          <input type="file"
+                 name="file"
+                 accept=".csv,.xlsx,.txt"
+                 class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-slate-50">
+          <p class="text-[11px] text-slate-400 mt-1">Maksymalny rozmiar pliku: 2 MB. Format: <code>NIP;Rachunek;Kwota</code>.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">
+            Lub wklej listę identyfikatorów (po 1 w wierszu)
+          </label>
+          <textarea name="raw_list"
+                    rows="4"
+                    placeholder="5250001090&#10;KRS:0000010203&#10;DE123456789"
+                    class="w-full text-xs font-mono border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-slate-100">
+        <label class="inline-flex items-center text-xs text-slate-600 cursor-pointer">
+          <input type="checkbox" name="force" value="true" class="rounded border-slate-300 text-blue-600 mr-2">
+          <span>Wymuś świeże odpytanie rejestrów dla wszystkich pozycji</span>
+        </label>
+
+        <div class="flex items-center space-x-3">
+          <div id="batch-spinner" class="htmx-indicator items-center space-x-1.5 text-xs text-blue-600 font-semibold">
+            <span>⏳</span>
+            <span>Uruchamianie paczki...</span>
+          </div>
+          <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm cursor-pointer">
+            🚀 Rozpocznij weryfikację wsadową
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div id="batch-result-container"></div>
+
+  {% if batch_jobs %}
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-slate-100">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600">Historia zadań wsadowych</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px]">
+            <th class="p-3">ID zadania</th>
+            <th class="p-3">Plik / źródło</th>
+            <th class="p-3">Status</th>
+            <th class="p-3">Postęp</th>
+            <th class="p-3">Data</th>
+            <th class="p-3 text-right">Raporty</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for job in batch_jobs %}
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-mono font-bold text-slate-800">{{ job.id }}</td>
+            <td class="p-3">{{ job.filename }}</td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if job.status == 'COMPLETED' %}bg-emerald-100 text-emerald-800{% elif job.status == 'FAILED' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                {{ job.status }}
+              </span>
+            </td>
+            <td class="p-3 font-mono">{{ job.processed_count }}/{{ job.total_count }}</td>
+            <td class="p-3 text-slate-500 font-mono">{{ job.created_at[:16]|replace('T',' ') }}</td>
+            <td class="p-3 text-right space-x-1.5">
+              {% if job.status == 'COMPLETED' %}
+                <a href="/wsadowa/{{ job.id }}/pdf" target="_blank" class="px-2.5 py-1 bg-blue-600 text-white rounded text-[11px] font-bold">PDF</a>
+                <a href="/wsadowa/{{ job.id }}/csv" target="_blank" class="px-2.5 py-1 bg-slate-200 text-slate-800 rounded text-[11px] font-semibold">CSV</a>
+                <a href="/wsadowa/{{ job.id }}/md" target="_blank" class="px-2.5 py-1 bg-slate-200 text-slate-800 rounded text-[11px] font-semibold">MD</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

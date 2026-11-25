@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Rejestry i Listy Sankcyjne – CompanyVerificator{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <h1 class="text-xl font-bold text-slate-900">🏛️ Rejestry Publiczne i Listy Sankcyjne</h1>
+      <p class="text-xs text-slate-500 mt-1">Konfiguracja źródeł danych oraz synchronizacja oficjalnych list sankcyjnych MSWiA i Unii Europejskiej.</p>
+    </div>
+    <form hx-post="/rejestry/sync" hx-target="#sync-status-container" hx-indicator="#sync-spinner">
+      <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm cursor-pointer">
+        🔄 Synchronizuj listy sankcyjne MSWiA & UE
+      </button>
+    </form>
+  </div>
+
+  <div id="sync-spinner" class="htmx-indicator items-center space-x-2 text-xs text-blue-600 font-semibold">
+    <span>⏳</span>
+    <span>Pobieranie aktualnych wykazów sankcyjnych MSWiA i UE...</span>
+  </div>
+
+  <!-- Status źródeł -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-1">
+      <div class="font-bold text-slate-900">Biała Lista VAT (MF) & Check Bank</div>
+      <div class="text-emerald-700 font-semibold">🟢 Aktywne (API publiczne bez klucza)</div>
+      <p class="text-[11px] text-slate-500">Weryfikacja VAT, rachunków głównych, wirtualnych subkont oraz zapisywanie <code>requestId</code>.</p>
+    </div>
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-1">
+      <div class="font-bold text-slate-900">KRS & CRBR & VIES</div>
+      <div class="text-emerald-700 font-semibold">🟢 Aktywne (API publiczne)</div>
+      <p class="text-[11px] text-slate-500">Odpisy aktualne KRS (zarząd, upadłość/likwidacja), beneficjenci CRBR oraz VAT-UE w systemie VIES.</p>
+    </div>
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-1">
+      <div class="font-bold text-slate-900">Hurtownia Danych CEIDG v2</div>
+      {% if ceidg_configured %}
+        <div class="text-emerald-700 font-semibold">🟢 Skonfigurowana (token aktywny)</div>
+      {% else %}
+        <div class="text-amber-700 font-semibold">⚪ Opcjonalna (brak CEIDG_API_TOKEN)</div>
+      {% endif %}
+      <p class="text-[11px] text-slate-500">Dodatkowe pobieranie statusu JDG (zawieszony/wykreślony), daty rozpoczęcia i kodów PKD.</p>
+    </div>
+  </div>
+
+  <div id="sync-status-container">
+    {% include "partials/sanctions_sync_status.html" %}
+  </div>
+
+</div>
+{% endblock %}

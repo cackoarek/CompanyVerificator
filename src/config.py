@@ -1,0 +1,43 @@
+"""Centralna konfiguracja aplikacji CompanyVerificator."""
+
+import os
+from decimal import Decimal
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
+
+
+def get_data_dir() -> Path:
+    """Zwraca katalog bazowy na bazę SQLite i archiwum dowodowe."""
+    raw = os.getenv("CV_DATA_DIR", "data").strip() or "data"
+    path = Path(raw)
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+    return path
+
+
+DATA_DIR = get_data_dir()
+AUDITS_DIR = DATA_DIR / "audits"
+DB_PATH = DATA_DIR / "company_verificator.db"
+
+WEB_DIR = Path(__file__).resolve().parent / "web"
+TEMPLATES_DIR = WEB_DIR / "templates"
+STATIC_DIR = WEB_DIR / "static"
+
+DEFAULT_HOST = os.getenv("CV_HOST", "127.0.0.1")
+DEFAULT_PORT = int(os.getenv("CV_PORT", "8000"))
+DEBUG = os.getenv("CV_DEBUG", "false").lower() in ("1", "true", "yes")
+
+COOKIE_AUTH_TOKEN = "cv_access_token"
+ACCESS_TOKEN = os.getenv("CV_ACCESS_TOKEN", "").strip()
+
+CEIDG_API_TOKEN = os.getenv("CEIDG_API_TOKEN", "").strip()
+CACHE_TTL_HOURS = int(os.getenv("CV_CACHE_TTL_HOURS", "24"))
+HTTP_TIMEOUT_SECONDS = float(os.getenv("CV_HTTP_TIMEOUT_SECONDS", "8.0"))
+BATCH_CONCURRENCY = int(os.getenv("CV_BATCH_CONCURRENCY", "4"))
+PAYMENT_THRESHOLD_PLN = Decimal(os.getenv("CV_PAYMENT_THRESHOLD_PLN", "15000.00"))
+
+APP_USER_AGENT = "CompanyVerificator/0.1.0 (Compliance & AML)"

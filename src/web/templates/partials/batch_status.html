@@ -1,0 +1,68 @@
+{% if error %}
+  <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 text-xs font-semibold">
+    ⚠️ {{ error }}
+  </div>
+{% elif job %}
+  <div id="batch-job-box"
+       {% if job.status == 'RUNNING' %}
+         hx-get="/wsadowa/{{ job.id }}/status"
+         hx-trigger="every 1s"
+         hx-swap="outerHTML"
+       {% endif %}
+       class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900">
+          Zadanie wsadowe: <span class="font-mono">{{ job.id }}</span> ({{ job.filename }})
+        </h3>
+        <p class="text-xs text-slate-500">
+          Status: <strong>{{ job.status }}</strong> • Przetworzono: <strong class="font-mono">{{ job.processed_count }}/{{ job.total_count }}</strong>
+        </p>
+      </div>
+      {% if job.status == 'COMPLETED' %}
+        <div class="flex items-center gap-2">
+          <a href="/wsadowa/{{ job.id }}/pdf" target="_blank" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-xs">📑 Raport PDF</a>
+          <a href="/wsadowa/{{ job.id }}/csv" target="_blank" class="px-3 py-1.5 bg-slate-200 text-slate-800 rounded-lg font-semibold text-xs">CSV</a>
+          <a href="/wsadowa/{{ job.id }}/md" target="_blank" class="px-3 py-1.5 bg-slate-200 text-slate-800 rounded-lg font-semibold text-xs">Markdown</a>
+        </div>
+      {% endif %}
+    </div>
+
+    {% set pct = ((job.processed_count / job.total_count) * 100)|int if job.total_count else 100 %}
+    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+      <div class="bg-blue-600 h-2.5 transition-all" style="width: {{ pct }}%"></div>
+    </div>
+
+    {% if job.summary %}
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+        <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+          <span class="text-[10px] text-slate-500 block">Łącznie</span>
+          <strong class="text-base font-mono">{{ job.summary.total }}</strong>
+        </div>
+        <div class="p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+          <span class="text-[10px] text-emerald-700 block">Niskie</span>
+          <strong class="text-base font-mono text-emerald-800">{{ job.summary.low_risk }}</strong>
+        </div>
+        <div class="p-2.5 bg-amber-50 rounded-lg border border-amber-200">
+          <span class="text-[10px] text-amber-700 block">Średnie</span>
+          <strong class="text-base font-mono text-amber-800">{{ job.summary.medium_risk }}</strong>
+        </div>
+        <div class="p-2.5 bg-orange-50 rounded-lg border border-orange-200">
+          <span class="text-[10px] text-orange-700 block">Wysokie</span>
+          <strong class="text-base font-mono text-orange-800">{{ job.summary.high_risk }}</strong>
+        </div>
+        <div class="p-2.5 bg-red-50 rounded-lg border border-red-200">
+          <span class="text-[10px] text-red-700 block">Sankcje STOP</span>
+          <strong class="text-base font-mono text-red-800">{{ job.summary.critical_stop }}</strong>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if cards %}
+      {% with items = cards %}
+        {% include "partials/history_table.html" %}
+      {% endwith %}
+    {% endif %}
+  </div>
+{% endif %}

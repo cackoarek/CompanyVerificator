@@ -1,0 +1,58 @@
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+  <div class="flex items-center justify-between">
+    <h2 class="text-sm font-bold text-slate-900">Bazy sankcyjne załadowane lokalnie (SQLite)</h2>
+    <span class="text-xs text-slate-500">Dopasowanie po NIP, KRS, nazwie i osobach (zarząd / UBO)</span>
+  </div>
+
+  {% if results %}
+    <div class="space-y-1 text-xs">
+      {% for r in results %}
+        <div class="p-2.5 rounded-lg border {% if r.status == 'SUCCESS' %}bg-emerald-50 border-emerald-200 text-emerald-800{% else %}bg-amber-50 border-amber-200 text-amber-800{% endif %}">
+          <strong>{{ r.source }}</strong>: {{ r.status }} ({{ r.count }} wpisów) – {{ r.message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+      <div class="text-slate-500">Baza startowa (LOCAL_SEED)</div>
+      <div class="text-lg font-bold font-mono text-slate-900">{{ sanctions_counts.get('LOCAL_SEED', 0) }}</div>
+    </div>
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+      <div class="text-slate-500">Polska lista MSWiA</div>
+      <div class="text-lg font-bold font-mono text-slate-900">{{ sanctions_counts.get('MSWIA', 0) }}</div>
+    </div>
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+      <div class="text-slate-500">Unijna lista UE (FSF)</div>
+      <div class="text-lg font-bold font-mono text-slate-900">{{ sanctions_counts.get('EU', 0) }}</div>
+    </div>
+  </div>
+
+  {% if sync_logs %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px]">
+            <th class="p-2.5">Źródło</th>
+            <th class="p-2.5">Status</th>
+            <th class="p-2.5">Liczba wpisów</th>
+            <th class="p-2.5">Komunikat</th>
+            <th class="p-2.5">Ostatnia synchronizacja</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for log in sync_logs %}
+          <tr>
+            <td class="p-2.5 font-mono font-bold">{{ log.source }}</td>
+            <td class="p-2.5">{{ log.status }}</td>
+            <td class="p-2.5 font-mono">{{ log.entries_count }}</td>
+            <td class="p-2.5 text-slate-600">{{ log.message }}</td>
+            <td class="p-2.5 font-mono text-slate-500">{{ log.synced_at[:19]|replace('T',' ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
