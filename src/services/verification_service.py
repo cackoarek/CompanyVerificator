@@ -350,10 +350,15 @@ class VerificationService:
             else:
                 wspolnicy = list(krs_data.get("wspolnicy") or [])
 
+            # Jeśli to spółka akcyjna, a CRBR nie ma wpisu - sprawdź czy to spółka publiczna (art. 58 ustawy AML)
+            is_sa = "spółka akcyjna" in (krs_data.get("forma_prawna") or "").lower() or (krs_data.get("kapital_zakladowy") and krs_data.get("kapital_zakladowy") >= 100000)
             if crbr_data.get("blad_polaczenia"):
                 crbr_status = "BLAD_POLACZENIA"
             elif crbr_data.get("crbr_status") == "ZGODNY":
                 crbr_status = compare_krs_and_crbr(reprezentacja + wspolnicy + deanonymized_persons, beneficjenci)
+            elif is_sa and crbr_data.get("crbr_status") == "BRAK_WPISU":
+                # Spółki publiczne (notowane na giełdzie) na podstawie art. 58 ustawy AML nie podlegają zgłoszeniu do CRBR
+                crbr_status = "ZWOLNIONY_USTAWOWO_GPW"
             else:
                 crbr_status = crbr_data.get("crbr_status") or "BRAK_WPISU"
             status_rejestru = krs_data.get("status_rejestru") or ("BLAD_POLACZENIA" if mf_data.get("blad_polaczenia") else "AKTYWNY")
@@ -382,6 +387,9 @@ class VerificationService:
 
         # Status VAT i rachunek bankowy
         mf_request_id = mf_data.get("request_id") or vies_data.get("request_id")
+        removal_basis = str(mf_data.get("removal_basis") or "")
+        is_vat_group_member = "96 ust. 7ba" in removal_basis or "grupa vat" in removal_basis.lower()
+
         if is_foreign:
             if vies_data.get("blad_polaczenia"):
                 status_vat = vies_data.get("komunikat_bledu", "Błąd połączenia VIES")
@@ -398,14 +406,19 @@ class VerificationService:
             konta_mf: List[str] = []
         else:
             raw_vat = mf_data.get("status_vat")
-            if not raw_vat or "brak w wykazie" in raw_vat.lower():
+            if is_vat_group_member:
+                # Podmiot wykreślony z indywidualnego rejestru VAT z mocy art. 96 ust. 7ba (rozlicza się w ramach Grupy VAT)
+                status_vat = f"Członek Grupy VAT (art. 96 ust. 7ba ustawy o VAT)"
+                platnik_vat_czynny = True
+            elif not raw_vat or "brak w wykazie" in raw_vat.lower():
                 if ceidg_data.get("found"):
                     status_vat = "Nie figuruje na Białej Liście (np. zwolniony z VAT / niebędący podatnikiem VAT)"
                 else:
                     status_vat = raw_vat or "Niezarejestrowany"
+                platnik_vat_czynny = bool(mf_data.get("platnik_vat", False))
             else:
                 status_vat = raw_vat
-            platnik_vat_czynny = bool(mf_data.get("platnik_vat", False))
+                platnik_vat_czynny = bool(mf_data.get("platnik_vat", False))
             konta_mf = list(mf_data.get("rachunki_bankowe") or [])
 
         status_rachunku = StatusRachunkuBankowego.NIE_PODANO

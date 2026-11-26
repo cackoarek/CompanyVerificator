@@ -48,3 +48,12 @@ PAYMENT_THRESHOLD_PLN = Decimal(os.getenv("CV_PAYMENT_THRESHOLD_PLN", "15000.00"
 LOG_FILE_PATH = PROJECT_ROOT / "companyVerificator.log"
 
 APP_USER_AGENT = "CompanyVerificator/0.1.0 (Compliance & AML)"
+
+# GUS REGON (Baza BIR 1.1)
+GUS_ENABLED = os.getenv("GUS_ENABLED", "true").lower() in ("1", "true", "yes")
+GUS_API_URL = os.getenv(
+    "GUS_API_URL", "https://wyszukiwarkaregontest.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc"
+).strip()
+# Domyślnie publiczny klucz testowy GUS; po otrzymaniu z maila regon_bir@stat.gov.pl wpisujemy w .env produkcyjny
+GUS_USER_KEY = os.getenv("GUS_USER_KEY", "abcde12345abcde12345").strip()
+

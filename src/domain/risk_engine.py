@@ -260,6 +260,8 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
         and not inp.is_foreign
         and not inp.blad_polaczenia
         and not inp.rachunki_mf
+        and not ("grup" in (inp.status_vat or "").lower() and "vat" in (inp.status_vat or "").lower())
+        and "96 ust. 7ba" not in (inp.status_vat or "").lower()
     ):
         score += 20
         factors.append(
@@ -275,7 +277,13 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
 
     # 6. Status VAT / VIES
     if not inp.is_foreign and not inp.blad_polaczenia:
-        if not inp.platnik_vat_czynny and "zwolnion" not in (inp.status_vat or "").lower():
+        vat_lower = (inp.status_vat or "").lower()
+        is_vat_exempt_or_group = (
+            "zwolnion" in vat_lower
+            or ("grup" in vat_lower and "vat" in vat_lower)
+            or "96 ust. 7ba" in vat_lower
+        )
+        if not inp.platnik_vat_czynny and not is_vat_exempt_or_group:
             score += 25
             factors.append(
                 RiskFactor(
@@ -343,7 +351,14 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
         )
 
     if inp.kody_pkd:
+        # Sprawdź czy to nie licencjonowany ubezpieczyciel/instytucja zaufania (PKD 65.x)
+        is_licensed_insurance = any(p.startswith("65.") for p in inp.kody_pkd)
         matched_pkd = [p for p in inp.kody_pkd if any(p.startswith(pref) for pref in HIGH_RISK_PKD_PREFIXES)]
+        
+        # Jeśli podmiot jest ubezpieczycielem (PKD 65.x), to powiązane PKD finansowe (64.x, 66.x) wynikają z ustawowej działalności ubezpieczeniowej/funduszy
+        if is_licensed_insurance:
+            matched_pkd = [p for p in matched_pkd if not p.startswith("64.") and not p.startswith("66.")]
+
         if matched_pkd:
             score += 15
             factors.append(
@@ -475,6 +490,9 @@ def evaluate_kyc_scorecard(inp: RiskEvaluationInput) -> KycScorecard:
     if has_foreign_ubo or inp.is_foreign:
         ubo_pts = 6
         ubo_desc = "Nierezydent / podmiot zagraniczny w strukturze UBO lub zagraniczna forma prawna (ryzyko ukrycia beneficjenta)"
+    elif inp.crbr_status == "ZWOLNIONY_USTAWOWO_GPW":
+        ubo_pts = 0
+        ubo_desc = "Spółka publiczna notowana na rynku regulowanym (GPW) – ustawowe zwolnienie z CRBR (art. 58 ustawy AML)"
     elif inp.crbr_status in ("ROZBIEZNOSCI", "BRAK_WPISU"):
         ubo_pts = 3
         ubo_desc = f"Brak spójności lub brak wymaganego wpisu w CRBR ({inp.crbr_status})"
@@ -486,7 +504,11 @@ def evaluate_kyc_scorecard(inp: RiskEvaluationInput) -> KycScorecard:
     matched_high = []
     matched_sensitive = []
     if inp.kody_pkd:
+        is_licensed_insurance = any(p.startswith("65.") for p in inp.kody_pkd)
         matched_high = [p for p in inp.kody_pkd if any(p.startswith(pref) for pref in HIGH_RISK_PKD_PREFIXES)]
+        if is_licensed_insurance:
+            # Działalność ubezpieczeniowa i fundusze pod nadzorem KNF
+            matched_high = [p for p in matched_high if not p.startswith("64.") and not p.startswith("66.")]
         matched_sensitive = [p for p in inp.kody_pkd if any(p.startswith(pref) for pref in SENSITIVE_PKD_PREFIXES)]
 
     # Flaga kapitału 5 000 zł przy wysokich obrotach (np. transakcja >= 100 000 zł)
@@ -510,7 +532,7 @@ def evaluate_kyc_scorecard(inp: RiskEvaluationInput) -> KycScorecard:
         branza_desc = f"Branża wrażliwa podatkowo (budownictwo, transport, doradztwo, e-commerce; PKD: {', '.join(matched_sensitive[:2])})"
     else:
         branza_pts = 0
-        branza_desc = "Standardowa branża o niskim profilu ryzyka operacyjnego"
+        branza_desc = "Standardowa branża o niskim profilu ryzyka operacyjnego (lub sektor regulowany KNF)"
 
     # 5. Kanał nawiązania relacji
     if inp.kanal_relacji == KanalRelacji.SPOTKANIE_OSOBISTE:

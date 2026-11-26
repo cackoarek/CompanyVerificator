@@ -117,6 +117,9 @@ async def fetch_mf_white_list(
         nazwa = (subject.get("name") or "").strip()
         accounts = [clean_nrb(acc) for acc in (subject.get("accountNumbers") or []) if acc]
 
+        removal_basis = (subject.get("removalBasis") or "").strip() or None
+        removal_date = (subject.get("removalDate") or "").strip() or None
+
         return {
             "nip": normalized_nip,
             "found": True,
@@ -127,6 +130,8 @@ async def fetch_mf_white_list(
             "adres": adres,
             "status_vat": status_vat_raw or "Nieznany",
             "platnik_vat": platnik_vat,
+            "removal_basis": removal_basis,
+            "removal_date": removal_date,
             "rachunki_bankowe": accounts,
             "raw": data,
             "blad_polaczenia": False,
@@ -246,6 +251,9 @@ async def fetch_mf_white_list_by_regon(
         nazwa = (subject.get("name") or "").strip()
         accounts = [clean_nrb(acc) for acc in (subject.get("accountNumbers") or []) if acc]
 
+        removal_basis = (subject.get("removalBasis") or "").strip() or None
+        removal_date = (subject.get("removalDate") or "").strip() or None
+
         return {
             "nip": nip_val,
             "regon": regon_val,
@@ -256,6 +264,8 @@ async def fetch_mf_white_list_by_regon(
             "adres": adres,
             "status_vat": status_vat_raw or "Nieznany",
             "platnik_vat": platnik_vat,
+            "removal_basis": removal_basis,
+            "removal_date": removal_date,
             "rachunki_bankowe": accounts,
             "raw": data,
             "blad_polaczenia": False,
