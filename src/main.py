@@ -158,19 +158,24 @@ async def optional_token_auth_middleware(request: Request, call_next):
             safe_redirect = html.escape(request.url.path if is_safe_redirect_url(request.url.path) else "/", quote=True)
             if "text/html" in request.headers.get("accept", ""):
                 return HTMLResponse(
-                    content=f"""<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><title>Autoryzacja</title>
+                    content=f"""<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><title>Logowanie – CompanyVerificator</title>
                     <script src="https://cdn.tailwindcss.com"></script></head>
                     <body class="bg-slate-50 flex items-center justify-center min-h-screen p-4">
-                    <form method="POST" action="/login" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-sm w-full space-y-3">
-                    <h1 class="text-base font-bold text-slate-900">Wymagany Token Dostępu</h1>
+                    <form method="POST" action="/login" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-sm w-full space-y-4">
+                    <div class="space-y-1">
+                      <h1 class="text-base font-bold text-slate-900">🔒 Wymagane hasło dostępu</h1>
+                      <p class="text-xs text-slate-500">Dostęp do panelu CompanyVerificator jest chroniony hasłem.</p>
+                    </div>
                     <input type="hidden" name="redirect_url" value="{safe_redirect}">
-                    <input type="password" name="token" required placeholder="CV_ACCESS_TOKEN" class="w-full px-3 py-2 text-sm border rounded-lg">
-                    <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold">Zaloguj</button>
+                    <div>
+                      <input type="password" name="password" required autofocus placeholder="Wpisz hasło dostępu" class="w-full px-3 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer">Odblokuj panel</button>
                     </form></body></html>""",
                     status_code=401,
                     headers={"Cache-Control": "no-store"},
                 )
-            return JSONResponse(status_code=401, content={"detail": "Wymagana autoryzacja (CV_ACCESS_TOKEN)"})
+            return JSONResponse(status_code=401, content={"detail": "Wymagane hasło dostępu"})
 
     return await call_next(request)
 

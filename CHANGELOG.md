@@ -38,6 +38,8 @@ Format wzorowany na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
   - Usunięto zbędny slogan *"Silnik: Deterministyczny (Zero-Hallucination) • Retencja dowodowa: 5 lat"*.
 - **Skrypt startowy (`run_web.sh`):**
   - Skrypt ładuje teraz zmienne `CV_HOST`, `CV_PORT`, `CV_DEBUG` bezpośrednio ze wskazanego pliku `.env` (zamiast sztywno wpisanego portu 8000). Umożliwia to prostą zmianę portu w `.env` bez edycji skryptów shellowych.
+- **Ekran logowania:**
+  - Ujednolicono teksty na ekranie logowania – zamiast *"Wymagany Token Dostępu"* oraz *"CV_ACCESS_TOKEN"* wyświetlane jest *"🔒 Wymagane hasło dostępu"* i *"Wpisz hasło dostępu"*.
 
 ---
 
