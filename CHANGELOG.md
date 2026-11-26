@@ -57,6 +57,9 @@ Format wzorowany na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
   - Gdy użytkownik nie wpisze numeru rachunku w formularzu, w wynikach weryfikacji prezentowana jest pełna lista oficjalnie zarejestrowanych rachunków firmowych w MF wraz z formatowaniem i przyciskiem szybkiego kopiowania (`Kopiuj`).
   - Jeśli czynny podatnik VAT nie ma zarejestrowanego ani jednego rachunku w wykazie MF, system wyświetla widoczne ostrzeżenie oraz nalicza punkt ryzyka `NO_REGISTERED_BANK_ACCOUNTS` (+20 pkt, ryzyko średnie), zapobiegając nieświadomym przelewom na niezgłoszone rachunki.
   - Wykaz kont oraz ewentualny alert o ich braku są również uwzględniane w raportach Markdown i PDF.
+- **Wbudowane czcionki TrueType dla raportów PDF (polskie znaki diakrytyczne):**
+  - Dołączono czcionki `DejaVuSans.ttf` oraz `DejaVuSans-Bold.ttf` bezpośrednio do repozytorium projektu (`src/web/static/fonts/`).
+  - Gwarantuje to 100% poprawne wyświetlanie wszystkich polskich znaków (ą, ć, ę, ł, ń, ó, ś, ź, ż) w generowanych raportach PDF na każdym serwerze (nawet na minimalnych instalacjach Linux bez zainstalowanych czcionek systemowych).
 - **Obsługa kodu HTTP 204 w CEIDG v3:**
   - Dodano prawidłową interpretację odpowiedzi `204 No Content` z API CEIDG v3 jako brak wpisu w CEIDG (charakterystyczne dla spółek prawa handlowego rejestrowanych wyłącznie w KRS).
 - **Ekran logowania:**

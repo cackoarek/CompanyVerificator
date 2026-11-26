@@ -27,16 +27,25 @@ def register_pdf_fonts() -> Tuple[str, str]:
     if "DejaVuSans" in registered and "DejaVuSans-Bold" in registered:
         return "DejaVuSans", "DejaVuSans-Bold"
 
+    from src.config import PROJECT_ROOT, STATIC_DIR
+
     candidate_pairs = [
+        # 1. Czcionki wbudowane w repozytorium projektu
+        (STATIC_DIR / "fonts" / "DejaVuSans.ttf", STATIC_DIR / "fonts" / "DejaVuSans-Bold.ttf"),
+        (PROJECT_ROOT / "fonts" / "DejaVuSans.ttf", PROJECT_ROOT / "fonts" / "DejaVuSans-Bold.ttf"),
+        # 2. Czcionki systemowe Linux (Debian, Ubuntu, CentOS, Alpine, Arch)
         ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
         ("/usr/share/fonts/dejavu/DejaVuSans.ttf", "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf"),
+        ("/usr/share/fonts/TTF/DejaVuSans.ttf", "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"),
         ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
     ]
     for reg_path, bold_path in candidate_pairs:
-        if os.path.exists(reg_path) and os.path.exists(bold_path):
+        p_reg = Path(reg_path)
+        p_bold = Path(bold_path)
+        if p_reg.is_file() and p_bold.is_file():
             try:
-                pdfmetrics.registerFont(TTFont("DejaVuSans", reg_path))
-                pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", bold_path))
+                pdfmetrics.registerFont(TTFont("DejaVuSans", str(p_reg)))
+                pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", str(p_bold)))
                 return "DejaVuSans", "DejaVuSans-Bold"
             except Exception:
                 pass
