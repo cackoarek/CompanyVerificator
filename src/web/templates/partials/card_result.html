@@ -116,13 +116,40 @@
     </div>
 
     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-      <span class="text-[10px] font-bold uppercase text-slate-400 block">4. Sankcje & CRBR</span>
-      <div class="font-bold {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_inne %}text-red-700{% else %}text-emerald-700{% endif %}">
-        {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_inne %}🛑 TRAFIENIE SANKCYJNE{% else %}🟢 Brak wpisów (Czysty){% endif %}
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">4. Listy sankcyjne</span>
+        <span class="text-[10px] text-slate-400 cursor-help" title="Weryfikacja podmiotu oraz osób reprezentujących na listach sankcyjnych MSWiA (Polska), Unii Europejskiej oraz bazach lokalnych.">ℹ️</span>
       </div>
-      <p class="text-[11px] text-slate-500">CRBR: <strong>{{ karta.crbr_status }}</strong></p>
+      <div class="font-bold {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_inne %}text-red-700{% else %}text-emerald-700{% endif %}">
+        {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_inne %}🛑 TRAFIENIE SANKCYJNE{% else %}🟢 Czysty (brak sankcji){% endif %}
+      </div>
+      <p class="text-[11px] text-slate-500">
+        {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_inne %}
+          <span class="text-red-600 font-semibold">Zakaz współpracy (art. 2 ustawy sankcyjnej)</span>
+        {% else %}
+          MSWiA: czysty • UE: czysty
+        {% endif %}
+      </p>
     </div>
   </div>
+
+  <!-- Szczegóły trafienia sankcyjnego (jeśli wystąpiło) -->
+  {% if karta.sankcje_szczegoly %}
+  <div class="p-4 bg-red-50 border-2 border-red-400 rounded-xl space-y-2 text-xs text-red-950">
+    <div class="font-bold text-red-900 flex items-center gap-1.5 text-sm">
+      <span>🚨</span>
+      <span>SZCZEGÓŁY WPISU NA LIŚCIE SANKCYJNEJ (BEZWZGLĘDNY ZAKAZ TRANSAKCJI)</span>
+    </div>
+    <p class="text-[11px] text-red-800">
+      Wykryto powiązanie z podmiotem lub osobą figurującą w oficjalnym wykazie osób i podmiotów objętych środkami sankcyjnymi.
+    </p>
+    <div class="bg-white/80 p-3 rounded-lg border border-red-200 space-y-1 font-mono text-[11px]">
+      {% for s in karta.sankcje_szczegoly %}
+      <div class="text-red-900 font-semibold">• {{ s }}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Rachunki bankowe na Białej Liście (gdy nie podano konkretnego rachunku lub podano) -->
   {% if karta.rachunki_zgloszone_mf %}
@@ -163,19 +190,56 @@
   </div>
   {% endif %}
 
-  <!-- Reprezentacja i UBO -->
-  {% if karta.reprezentacja or karta.beneficjenci_rzeczywisci %}
+  <!-- Reprezentacja i Beneficjenci Rzeczywiści (CRBR) -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-      <div class="font-bold text-slate-700 mb-1">Reprezentacja (KRS / właściciel):</div>
-      <p class="text-slate-600">{{ karta.reprezentacja|join(', ') if karta.reprezentacja else 'Brak danych' }}</p>
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+      <div class="font-bold text-slate-700 flex items-center justify-between">
+        <span>Reprezentacja (KRS / Zarząd / Właściciel):</span>
+      </div>
+      <p class="text-slate-600">{{ karta.reprezentacja|join(', ') if karta.reprezentacja else 'Brak danych reprezentacji' }}</p>
     </div>
-    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-      <div class="font-bold text-slate-700 mb-1">Beneficjenci rzeczywiści (CRBR):</div>
-      <p class="text-slate-600">{{ karta.beneficjenci_rzeczywisci|join(', ') if karta.beneficjenci_rzeczywisci else 'Nie dotyczy / brak wpisu' }}</p>
+
+    <div class="p-3 rounded-xl border space-y-1 {% if karta.crbr_status == 'BRAK_WPISU' %}bg-amber-50/70 border-amber-200 text-amber-900{% elif karta.crbr_status == 'ROZBIEZNOSCI' %}bg-red-50 border-red-200 text-red-900{% elif karta.crbr_status == 'ZGODNY' %}bg-slate-50 border-slate-200 text-slate-800{% else %}bg-slate-50 border-slate-200 text-slate-700{% endif %}">
+      <div class="flex items-center justify-between">
+        <span class="font-bold flex items-center gap-1">
+          <span>Beneficjenci Rzeczywiści (CRBR):</span>
+          <span class="text-[10px] text-slate-400 cursor-help" title="Centralny Rejestr Beneficjentów Rzeczywistych (Ministerstwo Finansów) — rejestruje osoby fizyczne sprawujące bezpośrednią lub pośrednią kontrolę nad spółką (np. posiadające >25% udziałów, art. 58-61 ustawy AML).">ℹ️ (?)</span>
+        </span>
+        <span class="font-bold text-[11px]">
+          {% if karta.crbr_status == 'ZGODNY' %}
+            <span class="text-emerald-700">✅ Zgłoszeni beneficjenci</span>
+          {% elif karta.crbr_status == 'BRAK_WPISU' %}
+            <span class="text-amber-800">⚠️ Brak zgłoszenia w CRBR</span>
+          {% elif karta.crbr_status == 'ROZBIEZNOSCI' %}
+            <span class="text-red-700">⚠️ Rozbieżność z KRS</span>
+          {% elif karta.crbr_status == 'NIE_DOTYCZY' %}
+            <span class="text-slate-500">ℹ️ Nie dotyczy (JDG)</span>
+          {% elif karta.crbr_status == 'NIE_DOTYCZY_ZAGRANICZNA' %}
+            <span class="text-slate-500">ℹ️ Nie dotyczy (zagraniczna)</span>
+          {% else %}
+            <span>{{ karta.crbr_status }}</span>
+          {% endif %}
+        </span>
+      </div>
+
+      {% if karta.crbr_status == 'BRAK_WPISU' %}
+        <p class="text-[11px] text-amber-800 pt-1">
+          <strong>Wyjaśnienie:</strong> Ta spółka figuruje w KRS, lecz nie zgłosiła swoich właścicieli do rejestru Ministerstwa Finansów (CRBR).
+          Zgodnie z ustawą AML spółki handlowe mają obowiązek ujawnienia osób kontrolujących pod rygorem kar pieniężnych do 1 mln zł. Wymaga to potwierdzenia tożsamości właścicieli przed podjęciem kluczowej współpracy.
+        </p>
+      {% elif karta.crbr_status == 'ROZBIEZNOSCI' %}
+        <p class="text-[11px] text-red-700 pt-1">
+          <strong>Wyjaśnienie:</strong> Skład reprezentacji ujawniony w KRS różni się od osób zadeklarowanych w rejestrze CRBR. Zgodnie z art. 61a ustawy AML należy zweryfikować faktyczną strukturę właścicielską.
+        </p>
+      {% elif karta.crbr_status == 'ZGODNY' and karta.beneficjenci_rzeczywisci %}
+        <p class="text-slate-700 pt-1 font-medium">Ujawnieni właściciele (UBO): {{ karta.beneficjenci_rzeczywisci|join(', ') }}</p>
+      {% elif karta.crbr_status == 'NIE_DOTYCZY' %}
+        <p class="text-slate-500 text-[11px] pt-1">Jednoosobowe działalności gospodarcze (osoby fizyczne) nie podlegają obowiązkowi wpisu do CRBR – właścicielem jest bezpośrednio przedsiębiorca.</p>
+      {% else %}
+        <p class="text-slate-600">{{ karta.beneficjenci_rzeczywisci|join(', ') if karta.beneficjenci_rzeczywisci else 'Brak danych' }}</p>
+      {% endif %}
     </div>
   </div>
-  {% endif %}
 
   <!-- Czynniki ryzyka (Risk Matrix) -->
   {% if karta.risk_factors %}
