@@ -49,7 +49,15 @@
           <span class="font-semibold">{{ item.decyzja }}</span>
           <span class="block text-slate-400">{{ item.analyst_status }}</span>
         </td>
-        <td class="p-3 text-right space-x-1 whitespace-nowrap">
+        <td class="p-3 text-right space-x-1 whitespace-nowrap" x-data="{ copiedRow: false }">
+          <button type="button"
+                  @click="navigator.clipboard.writeText(window.location.origin + '/karta/{{ item.id }}'); copiedRow = true; setTimeout(() => copiedRow = false, 2000)"
+                  class="px-2 py-1 rounded text-[11px] font-semibold border transition-colors cursor-pointer"
+                  :class="copiedRow ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'"
+                  title="Kopiuj bezpośredni link do tej weryfikacji">
+            <span x-show="!copiedRow">🔗 Link</span>
+            <span x-show="copiedRow">✓</span>
+          </button>
           <a href="/karta/{{ item.id }}" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded text-[11px] font-semibold">Szczegóły</a>
           <a href="/karta/{{ item.id }}/pdf" target="_blank" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-semibold">PDF</a>
           <button type="button"

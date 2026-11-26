@@ -28,7 +28,7 @@
       </div>
     </div>
 
-    <div class="flex flex-col items-start md:items-end gap-1.5">
+    <div class="flex flex-col items-start md:items-end gap-1.5" x-data="{ copiedLink: false }">
       {% set r = karta.poziom_ryzyka.value %}
       {% if r == 'NISKIE' %}
         <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
@@ -47,9 +47,19 @@
           🛑 KRYTYCZNE – STOP ({{ karta.risk_score }}/100)
         </span>
       {% endif %}
-      <span class="text-[11px] font-mono text-slate-500">
-        Decyzja: <strong>{{ karta.decyzja.value }}</strong> • Analityk: <strong>{{ karta.analyst_status.value }}</strong>
-      </span>
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] font-mono text-slate-500">
+          Decyzja: <strong>{{ karta.decyzja.value }}</strong> • Analityk: <strong>{{ karta.analyst_status.value }}</strong>
+        </span>
+        <button type="button"
+                @click="navigator.clipboard.writeText(window.location.origin + '/karta/{{ karta.id }}'); copiedLink = true; setTimeout(() => copiedLink = false, 2500)"
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all cursor-pointer shadow-xs"
+                :class="copiedLink ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300'"
+                title="Kopiuj bezpośredni link do tej karty weryfikacji">
+          <span x-show="!copiedLink">🔗 Kopiuj link</span>
+          <span x-show="copiedLink" class="text-emerald-700 font-bold">✓ Skopiowano link!</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -478,7 +488,14 @@
       </div>
       {% endif %}
     </div>
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2" x-data="{ copiedBottom: false }">
+      <button type="button"
+              @click="navigator.clipboard.writeText(window.location.origin + '/karta/{{ karta.id }}'); copiedBottom = true; setTimeout(() => copiedBottom = false, 2500)"
+              class="px-3 py-2 rounded-lg font-semibold text-xs border transition-all cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+              :class="copiedBottom ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'">
+        <span x-show="!copiedBottom">🔗 Kopiuj link</span>
+        <span x-show="copiedBottom">✓ Skopiowano link!</span>
+      </button>
       <a href="/karta/{{ karta.id }}/pdf" target="_blank" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs">
         📄 Karta PDF (A4)
       </a>
