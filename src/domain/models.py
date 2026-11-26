@@ -4,7 +4,9 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
+from src.config import APP_TIMEZONE
 from src.domain.enums import (
     AnalystStatus,
     DecyzjaWspolpracy,
@@ -13,6 +15,20 @@ from src.domain.enums import (
     ProfilRyzykaKyc,
     StatusRachunkuBankowego,
 )
+
+
+def get_app_tz() -> ZoneInfo:
+    """Zwraca strefę czasową aplikacji (domyślnie Europe/Warsaw)."""
+    try:
+        return ZoneInfo(APP_TIMEZONE)
+    except Exception:
+        return ZoneInfo("Europe/Warsaw")
+
+
+def get_app_now() -> datetime:
+    """Zwraca bieżący czas lokalny w strefie czasowej aplikacji."""
+    return datetime.now(get_app_tz())
+
 
 
 @dataclass
@@ -120,8 +136,12 @@ class VerificationCard:
     kody_pkd: List[str] = field(default_factory=list)
     pkd_glowny: Optional[str] = None
 
-    data_weryfikacji: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    data_weryfikacji_tekst: str = field(default_factory=lambda: datetime.now().strftime("%d.%m.%Y, %H:%M"))
+    data_weryfikacji: str = field(
+        default_factory=lambda: get_app_now().isoformat()
+    )
+    data_weryfikacji_tekst: str = field(
+        default_factory=lambda: get_app_now().strftime("%d.%m.%Y, %H:%M")
+    )
     osoba_weryfikujaca: str = "CompanyVerificator – AML & Compliance Engine"
 
     # 1. Rejestry podstawowe (KRS / CEIDG / MF / VIES)

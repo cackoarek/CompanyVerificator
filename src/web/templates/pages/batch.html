@@ -91,7 +91,7 @@
               </span>
             </td>
             <td class="p-3 font-mono">{{ job.processed_count }}/{{ job.total_count }}</td>
-            <td class="p-3 text-slate-500 font-mono">{{ job.created_at[:16]|replace('T',' ') }}</td>
+            <td class="p-3 text-slate-500 font-mono">{{ job.created_at|app_dt }}</td>
             <td class="p-3 text-right space-x-1.5">
               {% if job.status == 'COMPLETED' %}
                 <a href="/wsadowa/{{ job.id }}/pdf" target="_blank" class="px-2.5 py-1 bg-blue-600 text-white rounded text-[11px] font-bold">PDF</a>

@@ -483,7 +483,7 @@
     <div class="pt-2 border-t border-slate-100 space-y-1 text-[11px] text-slate-500">
       <div class="font-bold text-slate-600">Dziennik zmian:</div>
       {% for ev in audit_events[:5] %}
-        <div>• <span class="font-mono">{{ ev.created_at[:19]|replace('T',' ') }}</span> — <strong>{{ ev.actor }}</strong>: {{ ev.action }} → <strong>{{ ev.new_decision }}</strong> {% if ev.note %}({{ ev.note }}){% endif %}</div>
+        <div>• <span class="font-mono">{{ ev.created_at|app_dt }}</span> — <strong>{{ ev.actor }}</strong>: {{ ev.action }} → <strong>{{ ev.new_decision }}</strong> {% if ev.note %}({{ ev.note }}){% endif %}</div>
       {% endfor %}
     </div>
     {% endif %}

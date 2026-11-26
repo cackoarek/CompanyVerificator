@@ -60,3 +60,6 @@ GUS_USER_KEY = os.getenv("GUS_USER_KEY", "abcde12345abcde12345").strip()
 # Uprawnienia do usuwania wpisów i czyszczenia historii (Delete)
 ALLOW_DELETION = os.getenv("CV_ALLOW_DELETION", "true").lower() in ("1", "true", "yes")
 
+# Strefa czasowa aplikacji (np. Europe/Warsaw)
+APP_TIMEZONE = os.getenv("CV_TIMEZONE", os.getenv("TZ", "Europe/Warsaw")).strip() or "Europe/Warsaw"
+

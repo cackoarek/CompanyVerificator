@@ -7,13 +7,44 @@ from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
 from src import __version__
-from src.config import ALLOW_DELETION, AUDITS_DIR, TEMPLATES_DIR
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+from src.config import ALLOW_DELETION, APP_TIMEZONE, AUDITS_DIR, TEMPLATES_DIR
 from src.core.database import Database
 from src.services.audit_service import AuditService
 from src.services.batch_service import BatchService
 from src.services.verification_service import VerificationService
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+def format_app_datetime(dt_val: Any, fmt: str = "%Y-%m-%d %H:%M") -> str:
+    """Konwertuje znacznik czasu UTC / ISO do lokalnej strefy czasowej aplikacji."""
+    if not dt_val:
+        return ""
+    try:
+        s = str(dt_val).strip()
+        if s.endswith("Z"):
+            dt = datetime.fromisoformat(s[:-1] + "+00:00")
+        elif "+" in s or (len(s) > 10 and "-" in s[10:]):
+            dt = datetime.fromisoformat(s)
+        else:
+            dt = datetime.fromisoformat(s).replace(tzinfo=timezone.utc)
+        
+        try:
+            target_tz = ZoneInfo(APP_TIMEZONE)
+        except Exception:
+            target_tz = ZoneInfo("Europe/Warsaw")
+            
+        local_dt = dt.astimezone(target_tz)
+        return local_dt.strftime(fmt)
+    except Exception:
+        # Fallback na proste zastąpienie T spacją
+        return str(dt_val)[:16].replace("T", " ")
+
+
+templates.env.filters["app_dt"] = format_app_datetime
+
 
 
 def get_db(request: Request) -> Database:
