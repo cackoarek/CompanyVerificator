@@ -15,17 +15,35 @@
   {% endif %}
 
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-      <div class="text-slate-500">Baza startowa (LOCAL_SEED)</div>
-      <div class="text-lg font-bold font-mono text-slate-900">{{ sanctions_counts.get('LOCAL_SEED', 0) }}</div>
+    <div hx-get="/rejestry/entries/LOCAL_SEED"
+         hx-target="#sanctions-modal-container"
+         class="p-3 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors cursor-pointer group">
+      <div class="text-slate-500 flex items-center justify-between">
+        <span>Baza startowa (LOCAL_SEED)</span>
+        <span class="text-[10px] text-blue-600 opacity-0 group-hover:opacity-100 font-semibold">Zobacz listę &rarr;</span>
+      </div>
+      <div class="text-lg font-bold font-mono text-slate-900 group-hover:text-blue-700">{{ sanctions_counts.get('LOCAL_SEED', 0) }}</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">Kliknij, aby podejrzeć wpisy w modalu</div>
     </div>
-    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-      <div class="text-slate-500">Polska lista MSWiA</div>
-      <div class="text-lg font-bold font-mono text-slate-900">{{ sanctions_counts.get('MSWIA', 0) }}</div>
+    <div hx-get="/rejestry/entries/MSWIA"
+         hx-target="#sanctions-modal-container"
+         class="p-3 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors cursor-pointer group">
+      <div class="text-slate-500 flex items-center justify-between">
+        <span>Polska lista MSWiA</span>
+        <span class="text-[10px] text-blue-600 opacity-0 group-hover:opacity-100 font-semibold">Zobacz listę &rarr;</span>
+      </div>
+      <div class="text-lg font-bold font-mono text-slate-900 group-hover:text-blue-700">{{ sanctions_counts.get('MSWIA', 0) }}</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">Wymaga kliknięcia przycisku synchronizacji</div>
     </div>
-    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-      <div class="text-slate-500">Unijna lista UE (FSF)</div>
-      <div class="text-lg font-bold font-mono text-slate-900">{{ sanctions_counts.get('EU', 0) }}</div>
+    <div hx-get="/rejestry/entries/EU"
+         hx-target="#sanctions-modal-container"
+         class="p-3 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors cursor-pointer group">
+      <div class="text-slate-500 flex items-center justify-between">
+        <span>Unijna lista UE (FSF)</span>
+        <span class="text-[10px] text-blue-600 opacity-0 group-hover:opacity-100 font-semibold">Zobacz listę &rarr;</span>
+      </div>
+      <div class="text-lg font-bold font-mono text-slate-900 group-hover:text-blue-700">{{ sanctions_counts.get('EU', 0) }}</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">Wymaga kliknięcia przycisku synchronizacji</div>
     </div>
   </div>
 

@@ -1,0 +1,14 @@
+# Core Web & API (Runtime)
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+jinja2>=3.1.3
+python-multipart>=0.0.9
+pydantic>=2.9.0
+python-dotenv>=1.0.0
+
+# Async HTTP client (rejestry publiczne i listy sankcyjne)
+httpx>=0.28.0
+
+# Generowanie dokumentacji dowodowej PDF i obsługa wsadowa XLSX
+reportlab>=4.1.0
+openpyxl>=3.1.2

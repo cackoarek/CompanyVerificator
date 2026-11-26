@@ -187,6 +187,18 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
                 recommendation="Zweryfikuj poprawność numeru konta bezpośrednio z kontrahentem przed wykonaniem przelewu.",
             )
         )
+    elif inp.status_rachunku == StatusRachunkuBankowego.BLAD_POLACZENIA_MF:
+        # Nie przypisujemy kary punktowej za brak rachunku, ponieważ to MF miało awarię/aktualizację bazy
+        factors.append(
+            RiskFactor(
+                code="BANK_VERIFICATION_FAILED_MF",
+                title="Nie zweryfikowano rachunku – chwilowa niedostępność serwisu MF",
+                severity=PoziomRyzykaAML.SREDNIE,
+                points=10,
+                legal_basis="Art. 22p ustawy o PIT / Dostępność rejestru MF",
+                recommendation="Ponów sprawdzenie za kilka minut na żywo (zaznaczając pominięcie cache), aby potwierdzić obecność rachunku w wykazie MF.",
+            )
+        )
     elif inp.status_rachunku == StatusRachunkuBankowego.BRAK_NA_BIALEJ_LISCIE and over_threshold:
         score += 35
         factors.append(

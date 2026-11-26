@@ -46,9 +46,17 @@
           <span class="font-semibold">{{ item.decyzja }}</span>
           <span class="block text-slate-400">{{ item.analyst_status }}</span>
         </td>
-        <td class="p-3 text-right space-x-1.5 whitespace-nowrap">
-          <a href="/karta/{{ item.id }}" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded text-[11px] font-semibold">Szczegóły</a>
-          <a href="/karta/{{ item.id }}/pdf" target="_blank" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-semibold">PDF</a>
+        <td class="p-3 text-right space-x-1 whitespace-nowrap">
+          <a href="/karta/{{ item.id }}" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded text-[11px] font-semibold">Szczegóły</a>
+          <a href="/karta/{{ item.id }}/pdf" target="_blank" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-semibold">PDF</a>
+          <button type="button"
+                  hx-delete="/historia/{{ item.id }}"
+                  hx-target="closest #history-table-wrapper, closest #recent-history-wrapper"
+                  hx-confirm="Czy na pewno chcesz usunąć tę weryfikację ({{ item.identifier }}) z historii?"
+                  title="Usuń wpis z bazy"
+                  class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-[11px] font-semibold transition-colors cursor-pointer">
+            ✕
+          </button>
         </td>
       </tr>
       {% endfor %}

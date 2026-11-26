@@ -140,14 +140,14 @@ class Database:
                 (
                     record["id"],
                     record["identifier"],
-                    record["identifier_kind"],
+                    record.get("identifier_kind", "NIP"),
                     record.get("nip"),
                     record.get("krs"),
                     record.get("regon"),
-                    record["nazwa"],
-                    record["forma_prawna"],
-                    record["poziom_ryzyka"],
-                    record["decyzja"],
+                    record.get("nazwa", "Podmiot"),
+                    record.get("forma_prawna", "NIEZNANA"),
+                    record.get("poziom_ryzyka", "NISKIE"),
+                    record.get("decyzja", "AKCEPTACJA"),
                     record.get("analyst_status", "AUTO"),
                     record.get("status_vat"),
                     record.get("status_rachunku"),
@@ -216,6 +216,20 @@ class Database:
         with self.connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [dict(r) for r in rows]
+
+    def delete_verification(self, verification_id: str) -> bool:
+        """Usuwa pojedynczą weryfikację oraz powiązane zdarzenia audytowe."""
+        with self.connect() as conn:
+            conn.execute("DELETE FROM audit_events WHERE verification_id = ?", (verification_id,))
+            cur = conn.execute("DELETE FROM verifications WHERE id = ?", (verification_id,))
+            return cur.rowcount > 0
+
+    def delete_all_verifications(self) -> int:
+        """Usuwa całą historię weryfikacji i zdarzeń audytowych."""
+        with self.connect() as conn:
+            conn.execute("DELETE FROM audit_events")
+            cur = conn.execute("DELETE FROM verifications")
+            return cur.rowcount
 
     def get_verification_stats(self) -> Dict[str, int]:
         with self.connect() as conn:
@@ -359,12 +373,16 @@ class Database:
                 )
         return len(entries)
 
-    def list_sanction_entries(self, source: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_sanction_entries(self, source: Optional[str] = None, limit: Optional[int] = None, offset: int = 0) -> List[Dict[str, Any]]:
         sql = "SELECT * FROM sanction_entries"
         params: List[Any] = []
         if source:
             sql += " WHERE source = ?"
             params.append(source)
+        sql += " ORDER BY id ASC"
+        if limit is not None:
+            sql += " LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
         with self.connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             out: List[Dict[str, Any]] = []

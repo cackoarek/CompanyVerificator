@@ -58,6 +58,9 @@ async def test_verification_service_full_flow_and_pdf(tmp_path: Path):
                 },
             )
         )
+        mock.get(url__regex=r"https://dane\.biznes\.gov\.pl/api/ceidg/.*").mock(
+            return_value=httpx.Response(404, json={"firmy": []})
+        )
         mock.post("https://crbr.podatki.gov.pl/api/crbr/beneficjenci").mock(
             return_value=httpx.Response(
                 200,
@@ -99,7 +102,8 @@ async def test_offline_blocks_analyst_approval(tmp_path: Path):
     svc = VerificationService(db=db, audits_dir=tmp_path / "audits")
     audit_svc = AuditService(db=db, audits_dir=tmp_path / "audits")
 
-    with respx.mock() as mock:
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(url__regex=r"https://dane\.biznes\.gov\.pl/api/ceidg/.*").mock(return_value=httpx.Response(404))
         mock.get(url__regex=r"https://wl-api\.mf\.gov\.pl/.*").mock(return_value=httpx.Response(503))
         card = await svc.verify_company(identifier="5250001090", force=True)
 
@@ -129,6 +133,7 @@ async def test_batch_parsing_and_execution(tmp_path: Path):
     batch_svc = BatchService(db=db, audits_dir=audits_dir)
 
     with respx.mock(assert_all_called=False) as mock:
+        mock.get(url__regex=r"https://dane\.biznes\.gov\.pl/api/ceidg/.*").mock(return_value=httpx.Response(404))
         mock.get(url__regex=r"https://wl-api\.mf\.gov\.pl/.*").mock(
             return_value=httpx.Response(404)
         )

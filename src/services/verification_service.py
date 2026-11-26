@@ -11,6 +11,7 @@ import httpx
 from src.config import AUDITS_DIR, CACHE_TTL_HOURS
 from src.core.database import Database
 from src.core.io import atomic_write_json, atomic_write_text
+from src.core.logging_config import app_logger
 from src.core.validators import classify_identifier, clean_nrb, validate_iban
 from src.domain.enums import DecyzjaWspolpracy, PoziomRyzykaAML, StatusRachunkuBankowego
 from src.domain.models import VerificationCard
@@ -61,9 +62,11 @@ class VerificationService:
         client: Optional[httpx.AsyncClient] = None,
     ) -> VerificationCard:
         """Przeprowadza pełną, deterministyczną procedurę należytej staranności."""
+        app_logger.info(f"Rozpoczęcie weryfikacji podmiotu: {identifier} (force={force}, rachunek={rachunek_bankowy is not None})")
         clf = classify_identifier(identifier, allow_test_nips=allow_test_nips)
 
         if not clf.is_valid:
+            app_logger.warning(f"Niepoprawny identyfikator podmiotu: {identifier} ({clf.error})")
             card = VerificationCard(
                 identifier=clf.normalized or identifier.strip(),
                 identifier_kind="INVALID",
@@ -85,7 +88,7 @@ class VerificationService:
             cached_row = self.db.get_latest_valid_cached_verification(clf.normalized, ttl_hours=CACHE_TTL_HOURS)
             if cached_row:
                 import json
-
+                app_logger.info(f"Zwrócono wynik z pamięci podręcznej (cache) dla {clf.normalized}")
                 return VerificationCard.from_dict(json.loads(cached_row["card_json"]))
 
         own_client = client is None
@@ -102,12 +105,21 @@ class VerificationService:
                 status_pep=status_pep,
                 batch_id=batch_id,
             )
+        except Exception as exc:
+            app_logger.error(f"Nieoczekiwany błąd weryfikacji {clf.normalized}: {exc}", exc_info=True)
+            raise
         finally:
             if own_client:
                 await http_client.aclose()
 
         card.sha256_hash = compute_card_sha256(card)
         self._persist_card(card)
+
+        if card.blad_polaczenia:
+            app_logger.warning(f"Weryfikacja zakończona z błędami połączenia: {card.identifier} ({card.komunikat_bledu})")
+        else:
+            app_logger.info(f"Zakończono weryfikację: {card.identifier} - {card.nazwa} | Ryzyko: {card.poziom_ryzyka.value} ({card.risk_score} pkt) | Decyzja: {card.decyzja.value}")
+
         return card
 
     def _persist_card(self, card: VerificationCard) -> None:

@@ -43,6 +43,9 @@ def test_web_home_verify_history_and_exports(tmp_path: Path):
                 },
             )
         )
+        mock.get(url__regex=r"https://dane\.biznes\.gov\.pl/api/ceidg/.*").mock(
+            return_value=httpx.Response(404, json={"firmy": []})
+        )
         resp_verify = client.post(
             "/verify",
             data={
@@ -109,3 +112,53 @@ def test_csrf_and_token_auth_hardening(tmp_path: Path, monkeypatch):
     assert login_ok.status_code == 303
     # Open Redirect prevention -> przekierowanie na '/' zamiast '//evil.com'
     assert login_ok.headers["location"] == "/"
+
+
+def test_web_password_protection_and_lockout(tmp_path: Path, monkeypatch):
+    client = _make_client(tmp_path)
+    reset_login_rate_limits()
+
+    monkeypatch.setenv("WEB_PASSWORD", "TajneHaslo123!")
+    monkeypatch.setenv("LOGIN_LOCKOUT_HOURS", "5")
+
+    # Bez logowania -> 401 z formularzem hasła
+    resp = client.get("/", headers={"accept": "text/html"})
+    assert resp.status_code == 401
+    assert "Wymagane hasło dostępu" in resp.text
+
+    # 4 błędne próby -> 401
+    for _ in range(4):
+        bad_login = client.post("/login", data={"password": "zle-haslo"})
+        assert bad_login.status_code == 401
+
+    # 5. błędna próba -> blokada (429)
+    fifth_try = client.post("/login", data={"password": "zle-haslo"})
+    assert fifth_try.status_code == 429
+    assert "zablokowany na 5h" in fifth_try.json()["detail"]
+
+    # Kolejna próba wejścia na stronę z tego IP -> 429
+    blocked = client.get("/", headers={"accept": "text/html"})
+    assert blocked.status_code == 429
+    assert "Dostęp tymczasowo zablokowany" in blocked.text
+
+
+def test_history_delete_item_and_clear_all(tmp_path: Path):
+    client = _make_client(tmp_path)
+    db = client.app.state.db
+
+    # Dodaj 2 testowe wpisy
+    db.save_verification({"id": "v-1", "identifier": "5250001090", "identifier_kind": "NIP", "nazwa": "Firma 1", "poziom_ryzyka": "NISKIE", "decyzja": "AKCEPTACJA", "analyst_status": "AUTO", "status_vat": "Czynny", "status_rachunku": "NIE_PODANO", "blad_polaczenia": False, "sankcje_hit": False, "status_pep": False, "sha256_hash": "a"*64, "card_json": "{}", "created_at": "2026-01-01T10:00:00Z"})
+    db.save_verification({"id": "v-2", "identifier": "5250001091", "identifier_kind": "NIP", "nazwa": "Firma 2", "poziom_ryzyka": "NISKIE", "decyzja": "AKCEPTACJA", "analyst_status": "AUTO", "status_vat": "Czynny", "status_rachunku": "NIE_PODANO", "blad_polaczenia": False, "sankcje_hit": False, "status_pep": False, "sha256_hash": "b"*64, "card_json": "{}", "created_at": "2026-01-01T11:00:00Z"})
+
+    assert len(db.list_verifications()) == 2
+
+    # Usuń pojedynczy wpis
+    del_resp = client.delete("/historia/v-1")
+    assert del_resp.status_code == 200
+    assert len(db.list_verifications()) == 1
+    assert db.list_verifications()[0]["id"] == "v-2"
+
+    # Wyczyść całą historię
+    clear_resp = client.post("/historia/wyczysc")
+    assert clear_resp.status_code == 200
+    assert len(db.list_verifications()) == 0

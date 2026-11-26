@@ -42,3 +42,34 @@ async def history_table_partial(
         name="partials/history_table.html",
         context={"request": request, "items": items},
     )
+
+
+@router.delete("/{verification_id}", response_class=HTMLResponse)
+async def delete_history_item(
+    request: Request,
+    verification_id: str,
+    q: Optional[str] = Query(None),
+    risk: Optional[str] = Query(None),
+    offline: bool = Query(False),
+):
+    """Usuwa pojedynczą weryfikację i zwraca zaktualizowaną tabelę."""
+    db = get_db(request)
+    db.delete_verification(verification_id)
+    items = db.list_verifications(query=q, risk_level=risk, offline_only=offline, limit=100)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/history_table.html",
+        context={"request": request, "items": items},
+    )
+
+
+@router.post("/wyczysc", response_class=HTMLResponse)
+async def clear_all_history(request: Request):
+    """Czyści całą historię weryfikacji i zwraca pustą tabelę."""
+    db = get_db(request)
+    db.delete_all_verifications()
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/history_table.html",
+        context={"request": request, "items": []},
+    )

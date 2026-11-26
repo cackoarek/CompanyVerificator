@@ -10,7 +10,15 @@ from fastapi import Request
 
 _login_attempts: Dict[str, List[float]] = defaultdict(list)
 _RATE_LIMIT_MAX_ATTEMPTS = 5
-_RATE_LIMIT_WINDOW_SECONDS = 60.0
+
+
+def get_lockout_seconds() -> float:
+    from src.config import LOGIN_LOCKOUT_HOURS
+    try:
+        val = float(os.getenv("LOGIN_LOCKOUT_HOURS", str(LOGIN_LOCKOUT_HOURS)))
+        return max(val * 3600.0, 60.0)
+    except Exception:
+        return 5 * 3600.0
 
 
 def reset_login_rate_limits() -> None:
@@ -18,15 +26,23 @@ def reset_login_rate_limits() -> None:
     _login_attempts.clear()
 
 
-def check_login_rate_limit(client_ip: str) -> bool:
-    """Sprawdza limit prób logowania per IP (maks. 5 na minutę)."""
+def is_ip_locked_out(client_ip: str) -> bool:
+    """Sprawdza czy dane IP jest obecnie zablokowane z powodu zbyt wielu błędnych prób."""
     now = time.time()
+    lockout_sec = get_lockout_seconds()
     attempts = _login_attempts[client_ip]
-    attempts[:] = [t for t in attempts if now - t < _RATE_LIMIT_WINDOW_SECONDS]
-    if len(attempts) >= _RATE_LIMIT_MAX_ATTEMPTS:
-        return False
-    attempts.append(now)
-    return True
+    attempts[:] = [t for t in attempts if now - t < lockout_sec]
+    return len(attempts) >= _RATE_LIMIT_MAX_ATTEMPTS
+
+
+def record_failed_login_attempt(client_ip: str) -> None:
+    """Rejestruje nieudaną próbę logowania dla danego IP."""
+    _login_attempts[client_ip].append(time.time())
+
+
+def check_login_rate_limit(client_ip: str) -> bool:
+    """Zwraca True jeśli IP nie jest zablokowane (kompatybilność wsteczna)."""
+    return not is_ip_locked_out(client_ip)
 
 
 def is_secure_request(request: Request) -> bool:

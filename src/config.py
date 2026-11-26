@@ -34,10 +34,17 @@ DEBUG = os.getenv("CV_DEBUG", "false").lower() in ("1", "true", "yes")
 COOKIE_AUTH_TOKEN = "cv_access_token"
 ACCESS_TOKEN = os.getenv("CV_ACCESS_TOKEN", "").strip()
 
+# Ochrona hasłem strony WWW (WEB_PASSWORD)
+WEB_PASSWORD = os.getenv("WEB_PASSWORD", "").strip()
+LOGIN_LOCKOUT_HOURS = float(os.getenv("LOGIN_LOCKOUT_HOURS", "5"))
+
 CEIDG_API_TOKEN = os.getenv("CEIDG_API_TOKEN", "").strip()
 CACHE_TTL_HOURS = int(os.getenv("CV_CACHE_TTL_HOURS", "24"))
 HTTP_TIMEOUT_SECONDS = float(os.getenv("CV_HTTP_TIMEOUT_SECONDS", "8.0"))
 BATCH_CONCURRENCY = int(os.getenv("CV_BATCH_CONCURRENCY", "4"))
 PAYMENT_THRESHOLD_PLN = Decimal(os.getenv("CV_PAYMENT_THRESHOLD_PLN", "15000.00"))
+
+# Plik logów aplikacji
+LOG_FILE_PATH = PROJECT_ROOT / "companyVerificator.log"
 
 APP_USER_AGENT = "CompanyVerificator/0.1.0 (Compliance & AML)"

@@ -39,3 +39,26 @@ async def trigger_sanctions_sync(request: Request):
             "results": results,
         },
     )
+
+
+@router.get("/entries/{source}", response_class=HTMLResponse)
+async def view_sanction_entries_modal(request: Request, source: str):
+    """Zwraca modal z listą wpisów sankcyjnych dla wybranego źródła (HTMX)."""
+    db = get_db(request)
+    source_upper = source.upper()
+    titles = {
+        "LOCAL_SEED": "Baza startowa podmiotów sankcyjnych",
+        "MSWIA": "Polska lista sankcyjna MSWiA",
+        "EU": "Unijna lista sankcyjna UE (FSF)",
+    }
+    entries = db.list_sanction_entries(source=source_upper, limit=100)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/sanction_entries_modal.html",
+        context={
+            "request": request,
+            "source": source_upper,
+            "title": titles.get(source_upper, f"Lista {source_upper}"),
+            "entries": entries,
+        },
+    )

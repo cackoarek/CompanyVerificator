@@ -1,0 +1,82 @@
+<!-- Modal podglądu wpisów sankcyjnych -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+     x-data="{ show: true }"
+     x-show="show"
+     @keydown.escape.window="show = false">
+  <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden"
+       @click.away="show = false">
+    
+    <!-- Nagłówek modala -->
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <div class="flex items-center space-x-2">
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 uppercase font-mono">{{ source }}</span>
+        <h3 class="text-sm font-bold text-slate-900">{{ title }}</h3>
+        <span class="text-xs text-slate-500 font-mono">({{ entries|length }}{% if entries|length == 100 %}+{% endif %} wpisów)</span>
+      </div>
+      <button type="button"
+              onclick="document.getElementById('sanctions-modal-container').innerHTML = ''"
+              class="text-slate-400 hover:text-slate-600 font-bold text-sm px-2 py-1 rounded cursor-pointer">
+        ✕
+      </button>
+    </div>
+
+    <!-- Tabela wpisów -->
+    <div class="p-4 overflow-y-auto space-y-3 flex-1 text-xs">
+      {% if entries %}
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b border-slate-200 text-slate-400 uppercase text-[10px] font-bold">
+            <th class="py-2 px-1">Typ</th>
+            <th class="py-2 px-2">Nazwa / Imię i nazwisko</th>
+            <th class="py-2 px-2 font-mono">NIP / KRS</th>
+            <th class="py-2 px-2">Podstawa / Powód wpisu</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for e in entries %}
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-1">
+              {% if e.entry_type == 'PERSON' %}
+                <span class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-bold text-[10px]">OSOBA</span>
+              {% else %}
+                <span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">FIRMA</span>
+              {% endif %}
+            </td>
+            <td class="py-2 px-2">
+              <strong class="text-slate-900">{{ e.name }}</strong>
+              {% if e.aliases %}
+                <div class="text-[10px] text-slate-400 mt-0.5 truncate max-w-xs" title="{{ e.aliases|join(', ') }}">
+                  Aliasy: {{ e.aliases|join(', ') }}
+                </div>
+              {% endif %}
+            </td>
+            <td class="py-2 px-2 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+              {% if e.nip %}<div>NIP: {{ e.nip }}</div>{% endif %}
+              {% if e.krs %}<div>KRS: {{ e.krs }}</div>{% endif %}
+              {% if not e.nip and not e.krs %}—{% endif %}
+            </td>
+            <td class="py-2 px-2 text-slate-600 text-[11px]">
+              {{ e.reason or '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="p-8 text-center text-slate-500">
+        Brak wpisów dla tego źródła. Użyj przycisku synchronizacji, aby pobrać dane.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Stopka modala -->
+    <div class="p-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+      <button type="button"
+              onclick="document.getElementById('sanctions-modal-container').innerHTML = ''"
+              class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-semibold cursor-pointer">
+        Zamknij
+      </button>
+    </div>
+
+  </div>
+</div>
