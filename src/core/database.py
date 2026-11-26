@@ -118,6 +118,10 @@ class Database:
                 );
                 """
             )
+            # Automatyczna migracja istniejących baz: dodanie kolumny client_ip jeśli brak
+            cols = [r[1] for r in conn.execute("PRAGMA table_info(verifications)").fetchall()]
+            if "client_ip" not in cols:
+                conn.execute("ALTER TABLE verifications ADD COLUMN client_ip TEXT")
 
     def save_verification(self, record: Dict[str, Any]) -> None:
         """Zapisuje lub aktualizuje kartę weryfikacji w bazie."""
