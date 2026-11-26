@@ -279,10 +279,17 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
     # 6. Status VAT / VIES
     if not inp.is_foreign and not inp.blad_polaczenia:
         vat_lower = (inp.status_vat or "").lower()
+        forma_lower = (inp.forma_prawna or "").lower()
+        is_statutory_nonprofit = (
+            "stowarzyszen" in forma_lower
+            or "klub sportow" in forma_lower
+            or "związek sportow" in forma_lower
+        )
         is_vat_exempt_or_group = (
             "zwolnion" in vat_lower
             or ("grup" in vat_lower and "vat" in vat_lower)
             or "96 ust. 7ba" in vat_lower
+            or is_statutory_nonprofit
         )
         if not inp.platnik_vat_czynny and not is_vat_exempt_or_group:
             score += 25

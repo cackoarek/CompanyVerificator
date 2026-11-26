@@ -196,6 +196,7 @@ class VerificationService:
         crbr_data: Dict[str, Any] = {}
         ceidg_data: Dict[str, Any] = {}
         vies_data: Dict[str, Any] = {}
+        gus_data: Optional[Dict[str, Any]] = None
 
         # Krok 1: Równoległe odpytanie podstawowych rejestrów dla typu identyfikatora
         if clf_kind == "REGON" and regon_input:
@@ -453,12 +454,25 @@ class VerificationService:
             konta_mf: List[str] = []
         else:
             raw_vat = mf_data.get("status_vat")
+            forma_lower = (forma_prawna or "").lower()
+            nazwa_lower = (final_nazwa or "").lower()
+            is_sports_club_or_association = (
+                "stowarzyszen" in forma_lower
+                or "klub sportow" in forma_lower
+                or "klub sportow" in nazwa_lower
+                or "uks" in nazwa_lower
+                or "związek sportow" in forma_lower
+                or "fundacj" in forma_lower
+                or (gus_data and "055" in str(gus_data.get("raw", {})))
+            )
             if is_vat_group_member:
                 # Podmiot wykreślony z indywidualnego rejestru VAT z mocy art. 96 ust. 7ba (rozlicza się w ramach Grupy VAT)
                 status_vat = f"Członek Grupy VAT (art. 96 ust. 7ba ustawy o VAT)"
                 platnik_vat_czynny = True
             elif not raw_vat or "brak w wykazie" in raw_vat.lower():
-                if ceidg_data.get("found"):
+                if is_sports_club_or_association:
+                    status_vat = "Zwolniony z VAT / Działalność statutowa (art. 43 ust. 1 pkt 32 ustawy o VAT)"
+                elif ceidg_data.get("found"):
                     status_vat = "Nie figuruje na Białej Liście (np. zwolniony z VAT / niebędący podatnikiem VAT)"
                 else:
                     status_vat = raw_vat or "Niezarejestrowany"
