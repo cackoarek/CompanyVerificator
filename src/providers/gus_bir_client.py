@@ -205,11 +205,43 @@ class GusBirClient:
             typ_podmiotu = raw.get("Typ", "")
             forma_prawna = "Osoba prawna / jednostka organizacyjna" if typ_podmiotu == "P" else ("Osoba fizyczna (działalność)" if typ_podmiotu == "F" else "Inna forma organizacyjna")
 
+            # Jeśli typ == "P" (osoba prawna), spróbuj pobrać KRS z pełnego raportu jeśli nie ma go w wyniku podstawowym
+            krs_val = raw.get("Krs") or None
+            if not krs_val and typ_podmiotu == "P" and raw.get("Regon"):
+                try:
+                    full_body = f"""<ns:DanePobierzPelnyRaport>
+<ns:pRegon>{raw.get("Regon")}</ns:pRegon>
+<ns:pNazwaRaportu>PublDaneRaportPrawna</ns:pNazwaRaportu>
+</ns:DanePobierzPelnyRaport>"""
+                    action_full = "http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DanePobierzPelnyRaport"
+                    env_full = _build_soap_envelope(action_full, full_body, self.service_url)
+                    resp_full = await client.post(
+                        self.service_url,
+                        content=env_full.encode("utf-8"),
+                        headers={"Content-Type": "application/soap+xml; charset=utf-8", "sid": sid},
+                        timeout=8.0,
+                    )
+                    if resp_full.status_code == 200:
+                        full_xml_str = _extract_xml_from_multipart(resp_full.text)
+                        full_root = ET.fromstring(full_xml_str)
+                        full_res_elem = full_root.find(".//{http://CIS/BIR/PUBL/2014/07}DanePobierzPelnyRaportResult")
+                        if full_res_elem is not None and full_res_elem.text:
+                            inner_full_root = ET.fromstring(full_res_elem.text.strip())
+                            dane_full = inner_full_root.find("dane")
+                            if dane_full is not None:
+                                krs_cand = dane_full.findtext("praw_numerWrejestrzeEwidencji") or dane_full.findtext("praw_numerWRejestrzeEwidencji")
+                                rod_rejestru = dane_full.findtext("praw_rodzajRejestruEwidencji_Nazwa") or ""
+                                if krs_cand and ("KRS" in rod_rejestru or "PRZEDSIĘBIORCÓW" in rod_rejestru or len(krs_cand) == 10):
+                                    krs_val = krs_cand.strip().zfill(10)
+                                    app_logger.info(f"GUS BIR: Pozyskano KRS {krs_val} z pełnego raportu dla REGON {raw.get('Regon')}")
+                except Exception as exc_full:
+                    app_logger.debug(f"GUS BIR: Nie udało się pobrać pełnego raportu KRS: {exc_full}")
+
             # Mapowanie pól na zunifikowany model
             parsed_data = {
                 "nip": raw.get("Nip") or None,
                 "regon": raw.get("Regon") or None,
-                "krs": raw.get("Krs") or None,
+                "krs": krs_val,
                 "nazwa": raw.get("Nazwa") or None,
                 "wojewodztwo": raw.get("Wojewodztwo") or None,
                 "powiat": raw.get("Powiat") or None,
@@ -224,7 +256,7 @@ class GusBirClient:
                 "zrodlo": "GUS_REGON_BIR",
             }
 
-            app_logger.info(f"GUS BIR: Znaleziono podmiot: {parsed_data['nazwa']} (REGON: {parsed_data['regon']})")
+            app_logger.info(f"GUS BIR: Znaleziono podmiot: {parsed_data['nazwa']} (REGON: {parsed_data['regon']}, KRS: {parsed_data['krs']})")
             return parsed_data
 
         except Exception as exc:
@@ -232,3 +264,4 @@ class GusBirClient:
             return None
         finally:
             await self._logout(client, sid)
+

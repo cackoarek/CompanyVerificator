@@ -19,6 +19,7 @@ from src.domain.models import VerificationCard
 from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
 from src.providers.ceidg_client import fetch_ceidg_info
 from src.providers.crbr_client import compare_krs_and_crbr, fetch_crbr_beneficiaries, matches_masked
+from src.providers.gus_bir_client import GusBirClient
 from src.providers.krs_client import fetch_krs_odpis
 from src.providers.mf_white_list import check_mf_bank_account, fetch_mf_white_list, fetch_mf_white_list_by_regon
 from src.providers.sanctions.matcher import match_sanctions
@@ -252,7 +253,24 @@ class VerificationService:
             if not krs and mf_data.get("krs"):
                 krs = mf_data["krs"]
 
-        # Krok 2: Jeśli mamy KRS (bezpośrednio lub z MF), pobieramy odpis KRS i CRBR równolegle
+            # Fallback dla podmiotów wykreślonych z VAT lub niefigurujących na Białej Liście MF:
+            # Sprawdź rejestr REGON (GUS BIR 1.1), aby ustalić numer KRS i dane rejestrowe spółki
+            if not krs and not ceidg_data.get("found"):
+                try:
+                    gus_client = GusBirClient()
+                    if gus_client.enabled:
+                        gus_data = await gus_client.search_entity(http_client, nip=nip)
+                        if gus_data:
+                            raw_evidence["gus_bir"] = gus_data
+                            if gus_data.get("krs"):
+                                krs = gus_data["krs"]
+                                app_logger.info(f"Odnaleziono numer KRS {krs} dla NIP {nip} w rejestrze GUS BIR")
+                            if not mf_data.get("regon") and gus_data.get("regon"):
+                                mf_data["regon"] = gus_data["regon"]
+                except Exception as exc_gus:
+                    app_logger.debug(f"Błąd fallbacku GUS BIR dla NIP {nip}: {exc_gus}")
+
+        # Krok 2: Jeśli mamy KRS (bezpośrednio, z MF lub z GUS BIR), pobieramy odpis KRS i CRBR równolegle
         if krs and not is_foreign:
             tasks = []
             need_krs = not krs_data
