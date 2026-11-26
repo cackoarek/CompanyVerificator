@@ -30,6 +30,17 @@ HOST="${CV_HOST:-${HOST:-127.0.0.1}}"
 PORT="${CV_PORT:-${PORT:-8000}}"
 LOG_LEVEL="${LOG_LEVEL:-info}"
 
+RELOAD_ARGS=()
+if [[ "${DEBUG_VAL,,}" == "true" || "${DEBUG_VAL,,}" == "1" ]]; then
+    echo "⚙️  Tryb developerski (CV_DEBUG=true) – przeładowywanie aktywne."
+    RELOAD_ARGS=(
+        "--reload"
+        "--reload-dir" "src"
+    )
+else
+    echo "🚀 Tryb produkcyjny (CV_DEBUG=false) – przeładowywanie wyłączone (oszczędność CPU)."
+fi
+
 echo "🛡  CompanyVerificator AML & Compliance Engine"
 echo "   http://${HOST}:${PORT}"
 echo "   Ctrl+C aby zatrzymać."
@@ -39,4 +50,4 @@ exec .venv/bin/uvicorn src.main:app \
     --host "$HOST" \
     --port "$PORT" \
     --log-level "$LOG_LEVEL" \
-    --reload
+    "${RELOAD_ARGS[@]}"

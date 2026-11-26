@@ -36,8 +36,11 @@ Format wzorowany na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
   - Nowy status konta bankowego `BLAD_POLACZENIA_MF` zapobiegający fałszywemu uznawaniu subkont masowych (np. Alior Bank 2490) za brakujące na Białej Liście w trakcie awarii serwisu MF.
 - **Stopka strony (`base.html`):**
   - Usunięto zbędny slogan *"Silnik: Deterministyczny (Zero-Hallucination) • Retencja dowodowa: 5 lat"*.
-- **Skrypt startowy (`run_web.sh`):**
-  - Skrypt ładuje teraz zmienne `CV_HOST`, `CV_PORT`, `CV_DEBUG` bezpośrednio ze wskazanego pliku `.env` (zamiast sztywno wpisanego portu 8000). Umożliwia to prostą zmianę portu w `.env` bez edycji skryptów shellowych.
+- **Skrypt startowy (`run_web.sh`) i optymalizacja CPU:**
+  - Usunięto bezwarunkową flagę `--reload`, która na serwerze uruchamiała 3 procesy (obserwator dysku watchfiles/stat reload) i stale zużywała ~50% CPU przez ciągłe skanowanie plików.
+  - Flaga `--reload` jest teraz aktywowana wyłącznie w trybie deweloperskim (`CV_DEBUG=true`) i z zawężeniem do katalogu kodu `--reload-dir src` (pomijając bazę danych SQLite, audyty oraz logi).
+  - W trybie produkcyjnym (`CV_DEBUG=false`) Uvicorn działa jako pojedynczy, lekki proces ze znikomym zużyciem procesora (0–1% CPU w spoczynku).
+  - Skrypt ładuje zmienne `CV_HOST`, `CV_PORT`, `CV_DEBUG` bezpośrednio ze wskazanego pliku `.env`.
 - **Aktualizacja API Hurtowni Danych CEIDG do wersji v3:**
   - Zaktualizowano endpoint do `https://dane.biznes.gov.pl/api/ceidg/v3/firmy` (wycofana przez MRiT wersja v2 zwracała błąd bramki API `404 No context-path`).
   - Rozszerzono pobieranie danych o adres siedziby, numer REGON oraz kody PKD.
