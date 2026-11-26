@@ -36,6 +36,8 @@ Format wzorowany na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
   - Nowy status konta bankowego `BLAD_POLACZENIA_MF` zapobiegający fałszywemu uznawaniu subkont masowych (np. Alior Bank 2490) za brakujące na Białej Liście w trakcie awarii serwisu MF.
 - **Stopka strony (`base.html`):**
   - Usunięto zbędny slogan *"Silnik: Deterministyczny (Zero-Hallucination) • Retencja dowodowa: 5 lat"*.
+- **Skrypt startowy (`run_web.sh`):**
+  - Skrypt ładuje teraz zmienne `CV_HOST`, `CV_PORT`, `CV_DEBUG` bezpośrednio ze wskazanego pliku `.env` (zamiast sztywno wpisanego portu 8000). Umożliwia to prostą zmianę portu w `.env` bez edycji skryptów shellowych.
 
 ---
 

@@ -16,11 +16,24 @@ if [[ ! -f ".env" ]]; then
     cp .env.example .env
 fi
 
+# Załaduj zmienne z .env (bez nadpisywania zmiennych już wyeksportowanych w powłoce)
+set -a
+# shellcheck disable=SC1091
+source <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env || true)
+set +a
+
 export PYTHONPATH="$SCRIPT_DIR"
 
-HOST="${HOST:-127.0.0.1}"
-PORT="${PORT:-8000}"
+HOST="${CV_HOST:-${HOST:-127.0.0.1}}"
+PORT="${CV_PORT:-${PORT:-8000}}"
 LOG_LEVEL="${LOG_LEVEL:-info}"
+RELOAD_FLAG=""
+if [[ "${CV_DEBUG:-false}" =~ ^(1|true|yes)$ ]]; then
+    RELOAD_FLAG="--reload"
+else
+    # Domyślnie włączamy --reload dla wygody lokalnej, chyba że CV_DEBUG=false
+    RELOAD_FLAG="--reload"
+fi
 
 echo "🛡  CompanyVerificator AML & Compliance Engine"
 echo "   http://${HOST}:${PORT}"
@@ -31,4 +44,4 @@ exec .venv/bin/uvicorn src.main:app \
     --host "$HOST" \
     --port "$PORT" \
     --log-level "$LOG_LEVEL" \
-    --reload
+    $RELOAD_FLAG
