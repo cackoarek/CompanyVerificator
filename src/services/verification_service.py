@@ -459,6 +459,7 @@ class VerificationService:
                 blad_polaczenia=blad_polaczenia,
                 niekompletne_zrodla=niekompletne_zrodla,
                 data_rozpoczecia=data_rozpoczecia,
+                data_wpisu_rejestru=krs_data.get("data_rejestracji") or ceidg_data.get("data_rozpoczecia") or None,
                 kody_pkd=kody_pkd,
                 iban_invalid=iban_invalid,
                 rachunki_mf=konta_mf,

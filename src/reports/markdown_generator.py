@@ -67,6 +67,18 @@ def render_card_markdown(card: VerificationCard) -> str:
             ]
         )
 
+    if card.is_recently_registered:
+        reg_dt = card.data_wpisu_rejestru or card.data_rozpoczecia
+        lines.extend(
+            [
+                "",
+                "> [!WARNING]",
+                "> ### ⚠️ OSTRZEŻENIE COMPLIANCE: PODMIOT NIEDAWNO ZAREJESTROWANY (< 2 MIESIĄCE)",
+                f"> Wpis do rejestru nastąpił w ciągu ostatnich 60 dni (data rejestracji: **{reg_dt}**).",
+                "> Zgodnie z metodyką należytej staranności MF podmiot bez historii gospodarczej wymaga **wzmożonej uwagi osoby sprawdzającej** (weryfikacja tożsamości reprezentantów, zaplecza gospodarczego i referencji).",
+            ]
+        )
+
     lines.extend(
         [
             "",

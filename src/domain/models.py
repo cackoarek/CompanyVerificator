@@ -124,6 +124,21 @@ class VerificationCard:
     batch_id: Optional[str] = None
     client_ip: Optional[str] = None
 
+    @property
+    def is_recently_registered(self) -> bool:
+        """Zwraca True, jeśli wpis w rejestrze nastąpił mniej niż 60 dni (2 miesiące) temu."""
+        date_str = self.data_wpisu_rejestru or self.data_rozpoczecia
+        if not date_str:
+            return False
+        for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%Y-%m-%dT%H:%M:%S"):
+            try:
+                dt = datetime.strptime(date_str[:10], fmt[: len(date_str[:10])] if "T" not in fmt else fmt)
+                days = (datetime.now(timezone.utc).replace(tzinfo=None) - dt).days
+                return 0 <= days < 60
+            except ValueError:
+                continue
+        return False
+
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
         data["poziom_ryzyka"] = self.poziom_ryzyka.value

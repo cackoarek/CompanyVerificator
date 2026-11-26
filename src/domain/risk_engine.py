@@ -38,22 +38,28 @@ class RiskEvaluationInput:
     blad_polaczenia: bool
     niekompletne_zrodla: List[str]
     data_rozpoczecia: Optional[str] = None
+    data_wpisu_rejestru: Optional[str] = None
     kody_pkd: Optional[List[str]] = None
     iban_invalid: bool = False
     rachunki_mf: Optional[List[str]] = None
 
 
-def _is_young_entity(data_rozpoczecia: Optional[str], months_threshold: int = 6) -> bool:
-    if not data_rozpoczecia:
-        return False
+def get_entity_age_days(data_str: Optional[str]) -> Optional[int]:
+    """Zwraca wiek podmiotu w dniach na podstawie daty rejestracji/rozpoczęcia."""
+    if not data_str:
+        return None
     for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%Y-%m-%dT%H:%M:%S"):
         try:
-            dt = datetime.strptime(data_rozpoczecia[:10], fmt[: len(data_rozpoczecia[:10])] if "T" not in fmt else fmt)
-            age_days = (datetime.now(timezone.utc).replace(tzinfo=None) - dt).days
-            return 0 <= age_days < months_threshold * 30
+            dt = datetime.strptime(data_str[:10], fmt[: len(data_str[:10])] if "T" not in fmt else fmt)
+            return (datetime.now(timezone.utc).replace(tzinfo=None) - dt).days
         except ValueError:
             continue
-    return False
+    return None
+
+
+def _is_young_entity(data_rozpoczecia: Optional[str], months_threshold: int = 6) -> bool:
+    days = get_entity_age_days(data_rozpoczecia)
+    return days is not None and 0 <= days < months_threshold * 30
 
 
 def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], PoziomRyzykaAML, DecyzjaWspolpracy, str, bool]:
@@ -273,12 +279,26 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
         )
 
     # 8. Krótki staż działalności i ryzykowne PKD (informacyjne sygnały należytej staranności)
-    if _is_young_entity(inp.data_rozpoczecia):
+    effective_reg_date = inp.data_wpisu_rejestru or inp.data_rozpoczecia
+    reg_days = get_entity_age_days(effective_reg_date)
+    if reg_days is not None and 0 <= reg_days < 60:
+        score += 20
+        factors.append(
+            RiskFactor(
+                code="VERY_YOUNG_ENTITY",
+                title=f"Firma niedawno założona – wpis do rejestru poniżej 2 miesięcy (od {effective_reg_date}, ok. {reg_days} dni)",
+                severity=PoziomRyzykaAML.SREDNIE,
+                points=20,
+                legal_basis="Metodyka MF należytej staranności w VAT / Wzmożona uwaga AML",
+                recommendation="UWAGA DLA OSOBY SPRAWDZAJĄCEJ: Podmiot powstał bardzo niedawno (poniżej 2 miesięcy). Należy zachować szczególną ostrożność, zażądać potwierdzenia tożsamości osób reprezentujących, referencji handlowych oraz zweryfikować realne zaplecze gospodarcze przed realizacją transakcji.",
+            )
+        )
+    elif reg_days is not None and 60 <= reg_days < 180:
         score += 15
         factors.append(
             RiskFactor(
                 code="YOUNG_ENTITY",
-                title=f"Podmiot działa krócej niż 6 miesięcy (od {inp.data_rozpoczecia})",
+                title=f"Podmiot działa krócej niż 6 miesięcy (od {effective_reg_date})",
                 severity=PoziomRyzykaAML.SREDNIE,
                 points=15,
                 legal_basis="Metodyka MF należytej staranności w VAT",

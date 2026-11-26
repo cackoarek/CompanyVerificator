@@ -20,6 +20,11 @@
         {% elif karta.data_rozpoczecia %}
           <span>📅 Rozpoczęcie działalności: <strong class="text-slate-700">{{ karta.data_rozpoczecia }}</strong></span>
         {% endif %}
+        {% if karta.is_recently_registered %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[11px] animate-pulse">
+            ⚠️ Nowo założona firma (&lt; 2 mies.)
+          </span>
+        {% endif %}
       </div>
     </div>
 
@@ -72,6 +77,20 @@
     <div class="bg-red-50 border border-red-200 text-red-800 text-xs rounded-xl p-3 font-semibold">
       ⛔ {{ decision_error }}
     </div>
+  {% endif %}
+
+  <!-- Ostrzeżenie: Firma niedawno zarejestrowana (< 2 miesiące) -->
+  {% if karta.is_recently_registered %}
+  <div class="p-3.5 bg-amber-50/90 border border-amber-300 rounded-xl space-y-1.5 text-xs text-amber-950 shadow-xs">
+    <div class="font-bold flex items-center gap-1.5 text-amber-900">
+      <span class="text-base leading-none">⚠️</span>
+      <span>OSTRZEŻENIE COMPLIANCE: PODMIOT NIEDAWNO ZAREJESTROWANY (&lt; 2 MIESIĄCE)</span>
+    </div>
+    <p class="text-[11px] text-amber-900 leading-relaxed">
+      Wpis do rejestru (KRS / CEIDG) nastąpił w ciągu ostatnich 60 dni ({% if karta.krs %}wpis KRS: <strong>{{ karta.data_wpisu_rejestru or karta.data_rozpoczecia }}</strong>{% else %}początek działalności: <strong>{{ karta.data_rozpoczecia }}</strong>{% endif %}). 
+      Zgodnie z metodyką należytej staranności Ministerstwa Finansów oraz procedurami AML, współpraca z nowo utworzonymi firmami wymaga <strong>wzmożonej uwagi osoby sprawdzającej</strong> (weryfikacja tożsamości reprezentantów, brak historii gospodarczej, potwierdzenie zaplecza technicznego i referencji przed dokonaniem płatności).
+    </p>
+  </div>
   {% endif %}
 
   <!-- Siatka rejestrów -->

@@ -180,13 +180,18 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
     data_wpisu_label = "Data wpisu do rejestru przedsiębiorców:" if card.krs else "Data rejestracji / rozpoczęcia:"
     data_wpisu_val = card.data_wpisu_rejestru or card.data_rozpoczecia or "Brak danych"
 
+    if card.is_recently_registered:
+        data_wpisu_cell = f'<b>{_esc(data_wpisu_val)}</b> &nbsp;<font color="#B45309"><b>[!] NOWA FIRMA (&lt; 2 MIES.) – WZMOŻONA UWAGA</b></font>'
+    else:
+        data_wpisu_cell = f'<b>{_esc(data_wpisu_val)}</b>'
+
     t1 = Table(
         [
             [Paragraph("Pełna nazwa:", cell_bold), Paragraph(f"<b>{_esc(card.nazwa)}</b>", cell_norm)],
             [Paragraph("NIP / REGON / KRS:", cell_bold), Paragraph(f"NIP: <b>{_esc(card.nip or 'Brak')}</b> • REGON: {_esc(card.regon or 'Brak')} • KRS: {_esc(card.krs or 'Brak')}", cell_norm)],
             [Paragraph("Adres siedziby:", cell_bold), Paragraph(_esc(card.adres or "Brak danych adresowych"), cell_norm)],
             [Paragraph("Forma prawna / PKD:", cell_bold), Paragraph(f"{_esc(card.forma_prawna)} • PKD: {_esc(card.pkd_glowny or 'Brak')}", cell_norm)],
-            [Paragraph(data_wpisu_label, cell_bold), Paragraph(f"<b>{_esc(data_wpisu_val)}</b>", cell_norm)],
+            [Paragraph(data_wpisu_label, cell_bold), Paragraph(data_wpisu_cell, cell_norm)],
         ],
         colWidths=[140, 385],
     )
