@@ -98,18 +98,20 @@
 
     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
       <span class="text-[10px] font-bold uppercase text-slate-400 block">3. Rachunek (art. 22p PIT)</span>
-      <div class="font-bold {% if karta.status_rachunku.value == 'ZGODNY_BIALA_LISTA' %}text-emerald-700{% elif karta.status_rachunku.value == 'BRAK_NA_BIALEJ_LISCIE' %}text-red-700{% elif karta.status_rachunku.value == 'BLAD_POLACZENIA_MF' %}text-amber-700{% else %}text-slate-600{% endif %}">
+      <div class="font-bold {% if karta.status_rachunku.value == 'ZGODNY_BIALA_LISTA' %}text-emerald-700{% elif karta.status_rachunku.value == 'BRAK_NA_BIALEJ_LISCIE' %}text-red-700{% elif karta.status_rachunku.value == 'BLAD_POLACZENIA_MF' %}text-amber-700{% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.platnik_vat_czynny and not karta.rachunki_zgloszone_mf %}text-amber-700{% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.rachunki_zgloszone_mf %}text-emerald-700{% else %}text-slate-600{% endif %}">
         {% if karta.status_rachunku.value == 'ZGODNY_BIALA_LISTA' %}✅ Zgodny — rachunek w wykazie MF
         {% elif karta.status_rachunku.value == 'BRAK_NA_BIALEJ_LISCIE' %}🚫 Brak na Białej Liście MF
         {% elif karta.status_rachunku.value == 'BLAD_POLACZENIA_MF' %}⚠️ Nie zweryfikowano — MF chwilowo niedostępny
+        {% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.platnik_vat_czynny and not karta.rachunki_zgloszone_mf %}⚠️ Brak kont w wykazie MF!
+        {% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.rachunki_zgloszone_mf %}📋 W wykazie: {{ karta.rachunki_zgloszone_mf|length }} kont(a)
         {% elif karta.status_rachunku.value == 'NIE_PODANO' %}— Nie podano numeru rachunku
         {% elif karta.status_rachunku.value == 'NIE_DOTYCZY_ZAGRANICZNY' %}— Podmiot zagraniczny
         {% else %}{{ karta.status_rachunku.value }}{% endif %}
       </div>
       <p class="text-[11px] text-slate-500 font-mono truncate">
         {% if karta.zweryfikowany_rachunek %}{{ karta.zweryfikowany_rachunek }}
-        {% elif karta.rachunki_zgloszone_mf %}Kont w MF: {{ karta.rachunki_zgloszone_mf|length }}
-        {% else %}—{% endif %}
+        {% elif karta.rachunki_zgloszone_mf %}Zgłoszone konta poniżej
+        {% else %}Brak kont w MF{% endif %}
       </p>
     </div>
 
@@ -121,6 +123,45 @@
       <p class="text-[11px] text-slate-500">CRBR: <strong>{{ karta.crbr_status }}</strong></p>
     </div>
   </div>
+
+  <!-- Rachunki bankowe na Białej Liście (gdy nie podano konkretnego rachunku lub podano) -->
+  {% if karta.rachunki_zgloszone_mf %}
+  <div class="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-2 text-xs" x-data="{ copiedIdx: null }">
+    <div class="flex items-center justify-between">
+      <div class="font-bold text-emerald-900 flex items-center gap-1.5">
+        <span>🏦</span>
+        <span>Rachunki bankowe zarejestrowane na Białej Liście MF ({{ karta.rachunki_zgloszone_mf|length }}):</span>
+      </div>
+      <span class="text-[11px] text-emerald-700 font-medium">Oficjalne konta rozliczeniowe podmiotu</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+      {% for acc in karta.rachunki_zgloszone_mf %}
+      <div class="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-emerald-200 font-mono text-[11px] text-slate-800 shadow-sm">
+        <span class="font-semibold">{{ acc[:2] }} {{ acc[2:6] }} {{ acc[6:10] }} {{ acc[10:14] }} {{ acc[14:18] }} {{ acc[18:22] }} {{ acc[22:26] }}</span>
+        <button
+          type="button"
+          @click="navigator.clipboard.writeText('{{ acc }}'); copiedIdx = {{ loop.index0 }}; setTimeout(() => { if (copiedIdx === {{ loop.index0 }}) copiedIdx = null }, 2000)"
+          class="ml-2 px-2 py-0.5 rounded text-[10px] font-sans font-medium transition-colors"
+          :class="copiedIdx === {{ loop.index0 }} ? 'bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'"
+        >
+          <span x-text="copiedIdx === {{ loop.index0 }} ? '✓ Skopiowano' : 'Kopiuj'"></span>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% elif karta.platnik_vat_czynny and not karta.zweryfikowany_rachunek and not karta.is_foreign %}
+  <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+    <div class="font-bold flex items-center gap-1.5">
+      <span>⚠️</span>
+      <span>Brak zgłoszonych rachunków rozliczeniowych na Białej Liście VAT</span>
+    </div>
+    <p class="text-[11px] text-amber-800">
+      Kontrahent figuruje jako czynny podatnik VAT, lecz Szef KAS nie zarejestrował żadnego rachunku firmowego.
+      Przed dokonaniem płatności (zwłaszcza &ge; 15 000 zł) upewnij się, że płatność trafi na zgłoszone konto lub przygotuj zawiadomienie ZAW-NR.
+    </p>
+  </div>
+  {% endif %}
 
   <!-- Reprezentacja i UBO -->
   {% if karta.reprezentacja or karta.beneficjenci_rzeczywisci %}

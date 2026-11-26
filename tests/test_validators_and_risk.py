@@ -131,6 +131,29 @@ def test_risk_engine_whitelist_threshold_and_offline():
     assert mpp_small is False
     assert factors_small == []
 
+    # Czynny podatnik VAT bez podanego rachunku i bez kont w MF -> NO_REGISTERED_BANK_ACCOUNTS (+20 pkt)
+    score_no_acc, factors_no_acc, level_no_acc, dec_no_acc, _, _ = evaluate_risk(
+        RiskEvaluationInput(
+            is_foreign=False,
+            status_rejestru="AKTYWNY",
+            upadlosc_lub_likwidacja=False,
+            platnik_vat_czynny=True,
+            status_vat="Czynny",
+            vies_valid=None,
+            status_rachunku=StatusRachunkuBankowego.NIE_PODANO,
+            kwota_transakcji=None,
+            crbr_status="NIE_DOTYCZY",
+            sanction_hits=[],
+            status_pep=False,
+            blad_polaczenia=False,
+            niekompletne_zrodla=[],
+            rachunki_mf=[],
+        )
+    )
+    assert score_no_acc == 20
+    assert any(f.code == "NO_REGISTERED_BANK_ACCOUNTS" for f in factors_no_acc)
+    assert level_no_acc == PoziomRyzykaAML.SREDNIE
+
 
 def test_canonical_sha256_covers_evidence():
     card = VerificationCard(

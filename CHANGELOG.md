@@ -45,6 +45,12 @@ Format wzorowany na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 - **Obsługa przedsiębiorców niebędących podatnikami VAT (np. zwolnionych podmiotowo/przedmiotowo):**
   - Przedsiębiorcy aktywni w CEIDG, którzy nie figurują na Białej Liście MF (ponieważ wykaz MF obejmuje wyłącznie zarejestrowanych podatników VAT), otrzymują teraz właściwy status: `Nie figuruje na Białej Liście (np. zwolniony z VAT / niebędący podatnikiem VAT)`.
   - Zapobieganie fałszywym alarmom podwyższonego ryzyka (brak kary `REGISTRY_INACTIVE` dla aktywnych JDG zwolnionych z VAT).
+- **Prezentacja rachunków bankowych z Białej Listy MF:**
+  - Gdy użytkownik nie wpisze numeru rachunku w formularzu, w wynikach weryfikacji prezentowana jest pełna lista oficjalnie zarejestrowanych rachunków firmowych w MF wraz z formatowaniem i przyciskiem szybkiego kopiowania (`Kopiuj`).
+  - Jeśli czynny podatnik VAT nie ma zarejestrowanego ani jednego rachunku w wykazie MF, system wyświetla widoczne ostrzeżenie oraz nalicza punkt ryzyka `NO_REGISTERED_BANK_ACCOUNTS` (+20 pkt, ryzyko średnie), zapobiegając nieświadomym przelewom na niezgłoszone rachunki.
+  - Wykaz kont oraz ewentualny alert o ich braku są również uwzględniane w raportach Markdown i PDF.
+- **Obsługa kodu HTTP 204 w CEIDG v3:**
+  - Dodano prawidłową interpretację odpowiedzi `204 No Content` z API CEIDG v3 jako brak wpisu w CEIDG (charakterystyczne dla spółek prawa handlowego rejestrowanych wyłącznie w KRS).
 - **Ekran logowania:**
   - Ujednolicono teksty na ekranie logowania – zamiast *"Wymagany Token Dostępu"* oraz *"CV_ACCESS_TOKEN"* wyświetlane jest *"🔒 Wymagane hasło dostępu"* i *"Wpisz hasło dostępu"*.
 

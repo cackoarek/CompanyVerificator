@@ -421,6 +421,7 @@ class VerificationService:
                 data_rozpoczecia=data_rozpoczecia,
                 kody_pkd=kody_pkd,
                 iban_invalid=iban_invalid,
+                rachunki_mf=konta_mf,
             )
         )
 

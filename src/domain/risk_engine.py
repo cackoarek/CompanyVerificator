@@ -40,6 +40,7 @@ class RiskEvaluationInput:
     data_rozpoczecia: Optional[str] = None
     kody_pkd: Optional[List[str]] = None
     iban_invalid: bool = False
+    rachunki_mf: Optional[List[str]] = None
 
 
 def _is_young_entity(data_rozpoczecia: Optional[str], months_threshold: int = 6) -> bool:
@@ -209,6 +210,24 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
                 points=35,
                 legal_basis="Art. 22p ustawy o PIT / art. 117ba Ordynacji podatkowej",
                 recommendation="Dla płatności >= 15 000 zł złóż zawiadomienie ZAW-NR w ciągu 7 dni, użyj MPP lub żądaj konta z Białej Listy.",
+            )
+        )
+    elif (
+        inp.status_rachunku == StatusRachunkuBankowego.NIE_PODANO
+        and inp.platnik_vat_czynny
+        and not inp.is_foreign
+        and not inp.blad_polaczenia
+        and not inp.rachunki_mf
+    ):
+        score += 20
+        factors.append(
+            RiskFactor(
+                code="NO_REGISTERED_BANK_ACCOUNTS",
+                title="Brak zarejestrowanych rachunków firmowych w wykazie MF (Biała Lista)",
+                severity=PoziomRyzykaAML.SREDNIE,
+                points=20,
+                legal_basis="Art. 96b ust. 3 pkt 13 ustawy o VAT / art. 22p ustawy o PIT",
+                recommendation="Czynny podatnik VAT nie posiada zgłoszonych rachunków rozliczeniowych. Przed realizacją płatności (szczególnie >= 15 000 zł) zażądaj od kontrahenta zgłoszenia rachunku firmowego w urzędzie skarbowym.",
             )
         )
 

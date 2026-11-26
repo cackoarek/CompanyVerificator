@@ -70,6 +70,10 @@ async def fetch_ceidg_info(
                 }
             return {"found": False, "configured": True, "blad_polaczenia": False}
 
+        if resp.status_code == 204:
+            # 204 No Content oznacza brak podmiotu w rejestrze CEIDG (np. spółki KRS)
+            return {"found": False, "configured": True, "blad_polaczenia": False}
+
         if resp.status_code != 200:
             return {
                 "found": False,

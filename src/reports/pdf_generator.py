@@ -197,12 +197,21 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
 
     rep_txt = ", ".join(card.reprezentacja[:6]) if card.reprezentacja else "Brak danych reprezentacji"
     ubo_txt = ", ".join(card.beneficjenci_rzeczywisci[:6]) if card.beneficjenci_rzeczywisci else "Brak wpisu / nie dotyczy"
-    rach_txt = {
-        StatusRachunkuBankowego.ZGODNY_BIALA_LISTA: f'<font color="#15803D"><b>✓ Zgodny z Białą Listą MF</b></font> ({_esc(card.zweryfikowany_rachunek)})',
-        StatusRachunkuBankowego.BRAK_NA_BIALEJ_LISCIE: f'<font color="#D97706"><b>[!] BRAK na Białej Liście MF</b></font> ({_esc(card.zweryfikowany_rachunek)})',
-        StatusRachunkuBankowego.NIE_PODANO: '<font color="#64748B">Nie wskazano rachunku do badania</font>',
-        StatusRachunkuBankowego.NIE_DOTYCZY_ZAGRANICZNY: f'<font color="#2563EB">Rachunek zagraniczny</font> ({_esc(card.zweryfikowany_rachunek or "brak")})',
-    }.get(card.status_rachunku, _esc(card.status_rachunku.value))
+    if card.status_rachunku == StatusRachunkuBankowego.NIE_PODANO:
+        if card.rachunki_zgloszone_mf:
+            acc_previews = ", ".join(f"<code>{a[:2]} {a[2:6]}...{a[-4:]}</code>" for a in card.rachunki_zgloszone_mf[:3])
+            more = f" (+{len(card.rachunki_zgloszone_mf)-3})" if len(card.rachunki_zgloszone_mf) > 3 else ""
+            rach_txt = f'<font color="#15803D"><b>Wykaz MF ({len(card.rachunki_zgloszone_mf)}):</b></font> {acc_previews}{more}'
+        elif card.platnik_vat_czynny:
+            rach_txt = '<font color="#D97706"><b>[!] BRAK zarejestrowanych kont na Białej Liście MF</b></font>'
+        else:
+            rach_txt = '<font color="#64748B">Nie wskazano rachunku do badania</font>'
+    else:
+        rach_txt = {
+            StatusRachunkuBankowego.ZGODNY_BIALA_LISTA: f'<font color="#15803D"><b>✓ Zgodny z Białą Listą MF</b></font> ({_esc(card.zweryfikowany_rachunek)})',
+            StatusRachunkuBankowego.BRAK_NA_BIALEJ_LISCIE: f'<font color="#D97706"><b>[!] BRAK na Białej Liście MF</b></font> ({_esc(card.zweryfikowany_rachunek)})',
+            StatusRachunkuBankowego.NIE_DOTYCZY_ZAGRANICZNY: f'<font color="#2563EB">Rachunek zagraniczny</font> ({_esc(card.zweryfikowany_rachunek or "brak")})',
+        }.get(card.status_rachunku, _esc(card.status_rachunku.value))
 
     mswia_txt = '<font color="#DC2626"><b>[✗] WPIS NA LIŚCIE MSWiA</b></font>' if card.sankcje_mswia else '<font color="#15803D">✓ Czysty (MSWiA)</font>'
     ue_txt = '<font color="#DC2626"><b>[✗] WPIS NA LIŚCIE UE</b></font>' if card.sankcje_ue else '<font color="#15803D">✓ Czysty (UE)</font>'

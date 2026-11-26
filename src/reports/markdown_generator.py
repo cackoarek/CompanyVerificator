@@ -89,6 +89,18 @@ def render_card_markdown(card: VerificationCard) -> str:
             f"* **Status rachunku bankowego:** {rachunek_badge}",
             f"  * **Sprawdzany rachunek:** `{card.zweryfikowany_rachunek or 'Nie podano'}`",
             f"  * **MF Request ID:** `{card.mf_request_id or 'Brak'}`",
+            f"  * **Zarejestrowane rachunki w MF ({len(card.rachunki_zgloszone_mf)}):**" if card.rachunki_zgloszone_mf else (
+                f"  * **Zarejestrowane rachunki w MF:** ⚠️ Brak zgłoszonych rachunków w wykazie MF!" if card.platnik_vat_czynny else f"  * **Zarejestrowane rachunki w MF:** Nie dotyczy"
+            ),
+        ]
+    )
+
+    if card.rachunki_zgloszone_mf:
+        for acc in card.rachunki_zgloszone_mf:
+            lines.append(f"    * `{acc}`")
+
+    lines.extend(
+        [
             f"* **Lista sankcyjna MSWiA:** {mswia_badge}",
             f"* **Lista sankcyjna UE:** {ue_badge}",
         ]
