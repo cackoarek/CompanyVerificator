@@ -170,6 +170,29 @@ def test_history_delete_item_and_clear_all(tmp_path: Path, monkeypatch):
     assert clear_resp.status_code == 200
     assert len(db.list_verifications()) == 0
 
+    # Test blokady backendowej gdy ALLOW_DELETION jest wyłączone (CV_ALLOW_DELETION=false)
+    db.save_verification({"id": "v-3", "identifier": "5250001092", "identifier_kind": "NIP", "nazwa": "Firma 3", "poziom_ryzyka": "NISKIE", "decyzja": "AKCEPTACJA", "analyst_status": "AUTO", "status_vat": "Czynny", "status_rachunku": "NIE_PODANO", "blad_polaczenia": False, "sankcje_hit": False, "status_pep": False, "sha256_hash": "c"*64, "card_json": "{}", "created_at": "2026-01-01T12:00:00Z"})
+    monkeypatch.setattr("src.web.routers.history.ALLOW_DELETION", False)
+    monkeypatch.setattr("src.web.dependencies.ALLOW_DELETION", False)
+
+    # Próba usunięcia pojedynczego wpisu -> 403
+    blocked_del = client.delete("/historia/v-3")
+    assert blocked_del.status_code == 403
+    assert "Usuwanie wpisów weryfikacji zostało wyłączone" in blocked_del.json()["detail"]
+    assert len(db.list_verifications()) == 1
+
+    # Próba wyczyszczenia całości -> 403
+    blocked_clear = client.post("/historia/wyczysc")
+    assert blocked_clear.status_code == 403
+    assert "Czyszczenie historii weryfikacji zostało wyłączone" in blocked_clear.json()["detail"]
+    assert len(db.list_verifications()) == 1
+
+    # Przyciski usuwania nie powinny być widoczne w HTML
+    hist_html = client.get("/historia")
+    assert hist_html.status_code == 200
+    assert "Wyczyść całą historię" not in hist_html.text
+    assert 'hx-delete="/historia/v-3"' not in hist_html.text
+
 
 def test_how_it_works_page_publicly_accessible(tmp_path: Path, monkeypatch):
     """Testuje, czy strona /jak-to-dziala jest dostępna również bez logowania przy aktywnym WEB_PASSWORD."""

@@ -10,6 +10,7 @@
       <h1 class="text-xl font-bold text-slate-900">📋 Rejestr Należytej Staranności</h1>
       <p class="text-xs text-slate-500 mt-1">Wszystkie zarchiwizowane karty weryfikacji podmiotów wraz z możliwością filtrowania i wglądu w Audit Trail.</p>
     </div>
+    {% if allow_deletion %}
     <div>
       <button type="button"
               hx-post="/historia/wyczysc"
@@ -19,6 +20,7 @@
         🗑️ Wyczyść całą historię
       </button>
     </div>
+    {% endif %}
   </div>
 
   <!-- Filtry HTMX -->

@@ -169,6 +169,7 @@
     <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600">Ostatnie weryfikacje</h2>
+        {% if allow_deletion %}
         <button type="button"
                 hx-post="/historia/wyczysc"
                 hx-target="#recent-history-wrapper"
@@ -176,6 +177,7 @@
                 class="text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer">
           Wyczyść wszystkie
         </button>
+        {% endif %}
       </div>
       <a href="/historia" class="text-xs font-semibold text-blue-600 hover:underline">Zobacz cały rejestr &rarr;</a>
     </div>

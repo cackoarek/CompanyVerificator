@@ -7,7 +7,7 @@ from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
 from src import __version__
-from src.config import AUDITS_DIR, TEMPLATES_DIR
+from src.config import ALLOW_DELETION, AUDITS_DIR, TEMPLATES_DIR
 from src.core.database import Database
 from src.services.audit_service import AuditService
 from src.services.batch_service import BatchService
@@ -48,4 +48,5 @@ def base_context(request: Request, active_tab: str) -> Dict[str, Any]:
         "active_tab": active_tab,
         "stats": db.get_verification_stats(),
         "sanctions_counts": db.count_sanctions_by_source(),
+        "allow_deletion": ALLOW_DELETION,
     }

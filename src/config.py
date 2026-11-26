@@ -57,3 +57,6 @@ GUS_API_URL = os.getenv(
 # Domyślnie publiczny klucz testowy GUS; po otrzymaniu z maila regon_bir@stat.gov.pl wpisujemy w .env produkcyjny
 GUS_USER_KEY = os.getenv("GUS_USER_KEY", "abcde12345abcde12345").strip()
 
+# Uprawnienia do usuwania wpisów i czyszczenia historii (Delete)
+ALLOW_DELETION = os.getenv("CV_ALLOW_DELETION", "true").lower() in ("1", "true", "yes")
+
