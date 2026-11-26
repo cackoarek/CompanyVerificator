@@ -52,7 +52,7 @@ def format_analyst_status(status_val: Any) -> str:
         return ""
     val = getattr(status_val, "value", str(status_val))
     labels = {
-        "AUTO": "Weryfikacja automatyczna",
+        "AUTO": "Oczekuje na ocenę analityka",
         "PENDING_EXPLANATION": "Oczekuje na wyjaśnienie",
         "APPROVED_AFTER_REVIEW": "Zatwierdzono po wyjaśnieniu",
         "REJECTED": "Odrzucono / Blokada",

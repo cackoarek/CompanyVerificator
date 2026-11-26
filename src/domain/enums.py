@@ -63,7 +63,7 @@ class AnalystStatus(str, Enum):
     @property
     def label(self) -> str:
         mapping = {
-            AnalystStatus.AUTO: "Weryfikacja automatyczna",
+            AnalystStatus.AUTO: "Oczekuje na ocenę analityka",
             AnalystStatus.PENDING_EXPLANATION: "Oczekuje na wyjaśnienie",
             AnalystStatus.APPROVED_AFTER_REVIEW: "Zatwierdzono po wyjaśnieniu",
             AnalystStatus.REJECTED: "Odrzucono / Blokada",
