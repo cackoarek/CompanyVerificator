@@ -333,28 +333,16 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
     # 8. Krótki staż działalności i ryzykowne PKD (informacyjne sygnały należytej staranności)
     effective_reg_date = inp.data_wpisu_rejestru or inp.data_rozpoczecia
     reg_days = get_entity_age_days(effective_reg_date)
-    if reg_days is not None and 0 <= reg_days < 60:
+    if reg_days is not None and 0 <= reg_days < 180:
         score += 20
         factors.append(
             RiskFactor(
                 code="VERY_YOUNG_ENTITY",
-                title=f"Firma niedawno założona – wpis do rejestru poniżej 2 miesięcy (od {effective_reg_date}, ok. {reg_days} dni)",
+                title=f"Firma niedawno założona – wpis do rejestru poniżej 6 miesięcy (od {effective_reg_date}, ok. {reg_days} dni)",
                 severity=PoziomRyzykaAML.SREDNIE,
                 points=20,
-                legal_basis="Metodyka MF należytej staranności w VAT / Wzmożona uwaga AML",
-                recommendation="UWAGA DLA OSOBY SPRAWDZAJĄCEJ: Podmiot powstał bardzo niedawno (poniżej 2 miesięcy). Należy zachować szczególną ostrożność, zażądać potwierdzenia tożsamości osób reprezentujących, referencji handlowych oraz zweryfikować realne zaplecze gospodarcze przed realizacją transakcji.",
-            )
-        )
-    elif reg_days is not None and 60 <= reg_days < 180:
-        score += 15
-        factors.append(
-            RiskFactor(
-                code="YOUNG_ENTITY",
-                title=f"Podmiot działa krócej niż 6 miesięcy (od {effective_reg_date})",
-                severity=PoziomRyzykaAML.SREDNIE,
-                points=15,
-                legal_basis="Metodyka MF należytej staranności w VAT",
-                recommendation="Zweryfikuj faktyczne zaplecze techniczne, stronę WWW i referencje nowego kontrahenta.",
+                legal_basis="Metodyka MF należytej staranności w VAT / Wzmożona uwaga AML (KOR GIIF)",
+                recommendation="UWAGA DLA OSOBY SPRAWDZAJĄCEJ: Podmiot powstał bardzo niedawno (poniżej 6 miesięcy). Należy zachować szczególną ostrożność, zażądać potwierdzenia tożsamości osób reprezentujących, referencji handlowych oraz zweryfikować realne zaplecze gospodarcze przed realizacją transakcji.",
             )
         )
 

@@ -198,7 +198,7 @@ class VerificationCard:
 
     @property
     def is_recently_registered(self) -> bool:
-        """Zwraca True, jeśli wpis w rejestrze nastąpił mniej niż 60 dni (2 miesiące) temu."""
+        """Zwraca True, jeśli wpis w rejestrze nastąpił mniej niż 180 dni (6 miesięcy) temu."""
         date_str = self.data_wpisu_rejestru or self.data_rozpoczecia
         if not date_str:
             return False
@@ -206,7 +206,7 @@ class VerificationCard:
             try:
                 dt = datetime.strptime(date_str[:10], fmt[: len(date_str[:10])] if "T" not in fmt else fmt)
                 days = (datetime.now(timezone.utc).replace(tzinfo=None) - dt).days
-                return 0 <= days < 60
+                return 0 <= days < 180
             except ValueError:
                 continue
         return False

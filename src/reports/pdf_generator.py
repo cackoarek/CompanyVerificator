@@ -181,7 +181,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
     data_wpisu_val = card.data_wpisu_rejestru or card.data_rozpoczecia or "Brak danych"
 
     if card.is_recently_registered:
-        data_wpisu_cell = f'<b>{_esc(data_wpisu_val)}</b> &nbsp;<font color="#B45309"><b>[!] NOWA FIRMA (&lt; 2 MIES.) – WZMOŻONA UWAGA</b></font>'
+        data_wpisu_cell = f'<b>{_esc(data_wpisu_val)}</b> &nbsp;<font color="#B45309"><b>[!] NOWA FIRMA (&lt; 6 MIES.) – WZMOŻONA UWAGA</b></font>'
     else:
         data_wpisu_cell = f'<b>{_esc(data_wpisu_val)}</b>'
 
