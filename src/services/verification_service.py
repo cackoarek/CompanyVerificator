@@ -14,7 +14,7 @@ from src.core.io import atomic_write_json, atomic_write_text
 from src.core.logging_config import app_logger
 from src.core.validators import classify_identifier, clean_nrb, validate_iban
 from src.domain.dictionaries import evaluate_legal_form
-from src.domain.enums import DecyzjaWspolpracy, KanalRelacji, PoziomRyzykaAML, StatusRachunkuBankowego
+from src.domain.enums import AnalystStatus, DecyzjaWspolpracy, KanalRelacji, PoziomRyzykaAML, StatusRachunkuBankowego
 from src.domain.models import VerificationCard
 from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
 from src.providers.ceidg_client import fetch_ceidg_info
@@ -574,6 +574,15 @@ class VerificationService:
             )
         )
 
+        # Początkowy status analityka: przy niskim ryzyku natychmiastowe zatwierdzenie z automatu,
+        # przy sankcjach automatyczna blokada, przy średnim/wysokim oczekiwanie na decyzję człowieka.
+        if poziom_ryzyka == PoziomRyzykaAML.NISKIE and decyzja == DecyzjaWspolpracy.AKCEPTACJA and not blad_polaczenia:
+            initial_analyst_status = AnalystStatus.AUTO_APPROVED
+        elif poziom_ryzyka == PoziomRyzykaAML.KRYTYCZNE_STOP:
+            initial_analyst_status = AnalystStatus.AUTO_BLOCKED
+        else:
+            initial_analyst_status = AnalystStatus.AUTO
+
         return VerificationCard(
             identifier=clf_norm,
             identifier_kind=clf_kind,
@@ -617,6 +626,7 @@ class VerificationService:
             risk_factors=risk_factors,
             poziom_ryzyka=poziom_ryzyka,
             decyzja=decyzja,
+            analyst_status=initial_analyst_status,
             uzasadnienie_decyzji=uzasadnienie,
             blad_polaczenia=blad_polaczenia,
             niekompletne_zrodla=niekompletne_zrodla,

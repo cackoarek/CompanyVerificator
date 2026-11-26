@@ -154,9 +154,11 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
 
     analyst_color = {
         AnalystStatus.APPROVED_AFTER_REVIEW: "#15803D",
+        AnalystStatus.AUTO_APPROVED: "#15803D",
         AnalystStatus.REJECTED: "#DC2626",
+        AnalystStatus.AUTO_BLOCKED: "#DC2626",
         AnalystStatus.PENDING_EXPLANATION: "#B45309",
-        AnalystStatus.AUTO: "#334155",
+        AnalystStatus.AUTO: "#B45309",
     }.get(card.analyst_status, "#334155")
 
     analyst_display = f'<font color="{analyst_color}" name="{font_bold}" size="8.5"><b>{_esc(card.analyst_status.label)}</b></font>'

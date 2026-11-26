@@ -56,6 +56,8 @@ class StatusRachunkuBankowego(str, Enum):
 
 class AnalystStatus(str, Enum):
     AUTO = "AUTO"
+    AUTO_APPROVED = "AUTO_APPROVED"
+    AUTO_BLOCKED = "AUTO_BLOCKED"
     PENDING_EXPLANATION = "PENDING_EXPLANATION"
     APPROVED_AFTER_REVIEW = "APPROVED_AFTER_REVIEW"
     REJECTED = "REJECTED"
@@ -64,6 +66,8 @@ class AnalystStatus(str, Enum):
     def label(self) -> str:
         mapping = {
             AnalystStatus.AUTO: "Oczekuje na ocenę analityka",
+            AnalystStatus.AUTO_APPROVED: "Automatycznie zatwierdzono (Brak uwag)",
+            AnalystStatus.AUTO_BLOCKED: "Automatyczna blokada (Sankcje STOP)",
             AnalystStatus.PENDING_EXPLANATION: "Oczekuje na wyjaśnienie",
             AnalystStatus.APPROVED_AFTER_REVIEW: "Zatwierdzono po wyjaśnieniu",
             AnalystStatus.REJECTED: "Odrzucono / Blokada",
