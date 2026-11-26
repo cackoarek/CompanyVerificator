@@ -151,6 +151,10 @@ def parse_mswia_html(html_content: str) -> List[Dict[str, Any]]:
         )
         entry_type = "ENTITY" if (is_company or nip_match or krs_match) else "PERSON"
 
+        listed_at = ""
+        if len(clean_cells) >= 5 and clean_cells[4]:
+            listed_at = clean_cells[4].strip()
+
         entries.append(
             {
                 "entry_type": entry_type,
@@ -160,7 +164,7 @@ def parse_mswia_html(html_content: str) -> List[Dict[str, Any]]:
                 "krs": krs_match.group(1) if krs_match else None,
                 "aliases": [],
                 "reason": "Lista sankcyjna MSWiA (gov.pl)",
-                "listed_at": "",
+                "listed_at": listed_at,
             }
         )
 

@@ -79,6 +79,8 @@ def match_sanctions(
         s_nip = clean_nip(entry.get("nip"))
         s_krs = clean_krs(entry.get("krs"))
         reason = entry.get("reason", "")
+        listed_at = entry.get("listed_at", "")
+        date_suffix = f", wpis z dnia {listed_at}" if listed_at else ""
         aliases = entry.get("aliases") or []
         candidate_names = [s_name] + [a for a in aliases if a]
 
@@ -86,7 +88,9 @@ def match_sanctions(
         if norm_nip and len(norm_nip) == 10 and s_nip and norm_nip == s_nip:
             hit_reason = f"Identyfikator NIP {norm_nip} figuruje w wykazie sankcyjnym podmiotu '{s_name}'"
             if reason:
-                hit_reason += f" ({reason})"
+                hit_reason += f" ({reason}{date_suffix})"
+            elif date_suffix:
+                hit_reason += f" ({date_suffix.lstrip(', ')})"
             _add_hit(
                 SanctionHit(
                     source=source,
@@ -102,7 +106,9 @@ def match_sanctions(
         if norm_krs and len(norm_krs) == 10 and s_krs and norm_krs == s_krs:
             hit_reason = f"Numer KRS {norm_krs} figuruje w wykazie sankcyjnym podmiotu '{s_name}'"
             if reason:
-                hit_reason += f" ({reason})"
+                hit_reason += f" ({reason}{date_suffix})"
+            elif date_suffix:
+                hit_reason += f" ({date_suffix.lstrip(', ')})"
             _add_hit(
                 SanctionHit(
                     source=source,
@@ -126,7 +132,9 @@ def match_sanctions(
                 if c_norm == norm_comp or (c_tokens and c_tokens == comp_tokens):
                     hit_reason = f"Nazwa podmiotu '{company_name}' jest tożsama z podmiotem sankcjonowanym '{s_name}'"
                     if reason:
-                        hit_reason += f" ({reason})"
+                        hit_reason += f" ({reason}{date_suffix})"
+                    elif date_suffix:
+                        hit_reason += f" ({date_suffix.lstrip(', ')})"
                     _add_hit(
                         SanctionHit(
                             source=source,
@@ -142,7 +150,9 @@ def match_sanctions(
                 if (len(c_norm) >= 5 and c_norm in norm_comp) or (c_tokens and c_tokens.issubset(comp_tokens)):
                     hit_reason = f"Zbieżność nazwy '{company_name}' z podmiotem sankcjonowanym '{s_name}'"
                     if reason:
-                        hit_reason += f" ({reason})"
+                        hit_reason += f" ({reason}{date_suffix})"
+                    elif date_suffix:
+                        hit_reason += f" ({date_suffix.lstrip(', ')})"
                     _add_hit(
                         SanctionHit(
                             source=source,
@@ -172,7 +182,9 @@ def match_sanctions(
                     if len(p_tokens) >= 2 and p_tokens.issubset(c_tokens):
                         hit_reason = f"Osoba powiązana/zarządzająca '{person}' figuruje na liście sankcyjnej jako '{s_name}'"
                         if reason:
-                            hit_reason += f" ({reason})"
+                            hit_reason += f" ({reason}{date_suffix})"
+                        elif date_suffix:
+                            hit_reason += f" ({date_suffix.lstrip(', ')})"
                         _add_hit(
                             SanctionHit(
                                 source=source,
@@ -188,7 +200,9 @@ def match_sanctions(
                     if len(c_tokens) >= 2 and c_tokens.issubset(p_tokens):
                         hit_reason = f"Osoba powiązana/zarządzająca '{person}' figuruje na liście sankcyjnej jako '{s_name}'"
                         if reason:
-                            hit_reason += f" ({reason})"
+                            hit_reason += f" ({reason}{date_suffix})"
+                        elif date_suffix:
+                            hit_reason += f" ({date_suffix.lstrip(', ')})"
                         _add_hit(
                             SanctionHit(
                                 source=source,
@@ -205,7 +219,9 @@ def match_sanctions(
                         if len(single) >= 5 and single in p_tokens:
                             hit_reason = f"Potencjalna zbieżność nazwiska osoby powiązanej '{person}' z wpisem sankcyjnym '{s_name}'"
                             if reason:
-                                hit_reason += f" ({reason})"
+                                hit_reason += f" ({reason}{date_suffix})"
+                            elif date_suffix:
+                                hit_reason += f" ({date_suffix.lstrip(', ')})"
                             _add_hit(
                                 SanctionHit(
                                     source=source,
