@@ -47,30 +47,108 @@
     </div>
   </div>
 
-  {% if sync_logs %}
-    <div class="overflow-x-auto">
+  <!-- Tabela statusu wszystkich słowników i baz referencyjnych -->
+  <div class="space-y-2 pt-2">
+    <div class="flex items-center justify-between">
+      <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wide">Stan i data ostatniej synchronizacji słowników</h3>
+      <span class="text-[11px] text-slate-500">Automatyczny cykl w tle (asyncio)</span>
+    </div>
+
+    <div class="overflow-x-auto rounded-xl border border-slate-200">
       <table class="w-full text-left text-xs border-collapse">
         <thead>
-          <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px]">
-            <th class="p-2.5">Źródło</th>
+          <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+            <th class="p-2.5">Słownik / Baza</th>
+            <th class="p-2.5">Kategoria</th>
             <th class="p-2.5">Status</th>
             <th class="p-2.5">Liczba wpisów</th>
-            <th class="p-2.5">Komunikat</th>
             <th class="p-2.5">Ostatnia synchronizacja</th>
+            <th class="p-2.5">Reguła ważności</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
-          {% for log in sync_logs %}
-          <tr>
-            <td class="p-2.5 font-mono font-bold">{{ log.source }}</td>
-            <td class="p-2.5">{{ log.status }}</td>
-            <td class="p-2.5 font-mono">{{ log.entries_count }}</td>
-            <td class="p-2.5 text-slate-600">{{ log.message }}</td>
-            <td class="p-2.5 font-mono text-slate-500">{{ log.synced_at[:19]|replace('T',' ') }}</td>
-          </tr>
-          {% endfor %}
+        <tbody class="divide-y divide-slate-100 bg-white">
+          {% if all_dictionaries %}
+            {% for d in all_dictionaries %}
+              <tr class="{% if d.has_error %}bg-rose-50/50{% elif d.is_stale %}bg-amber-50/30{% endif %}">
+                <td class="p-2.5">
+                  <div class="font-bold text-slate-900">{{ d.name }}</div>
+                  <div class="text-[10px] text-slate-400">{{ d.source_url }}</div>
+                  {% if d.has_error and d.error_message %}
+                    <div class="text-[10px] text-rose-700 font-bold mt-0.5">⚠️ Błąd: {{ d.error_message }}</div>
+                  {% endif %}
+                </td>
+                <td class="p-2.5">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-600">{{ d.category }}</span>
+                </td>
+                <td class="p-2.5">
+                  {% if d.has_error %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                      ❌ BŁĄD UPDATE
+                    </span>
+                  {% elif d.is_stale %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                      ⏳ PRZEDAWNIONY
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      ✓ AKTUALNY
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="p-2.5 font-mono font-bold text-slate-800">{{ d.count }}</td>
+                <td class="p-2.5 font-mono text-slate-600">
+                  {% if d.last_synced_at %}
+                    {{ d.last_synced_at[:19]|replace('T', ' ') }}
+                  {% else %}
+                    <span class="text-amber-600">Brak synchronizacji</span>
+                  {% endif %}
+                </td>
+                <td class="p-2.5 text-[11px] text-slate-500">{{ d.ttl_desc }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="p-3 text-center text-slate-400">Trwa ładowanie statusu słowników...</td>
+            </tr>
+          {% endif %}
         </tbody>
       </table>
+    </div>
+  </div>
+
+  {% if sync_logs %}
+    <div class="space-y-1.5 pt-2">
+      <div class="text-[11px] font-bold text-slate-700 uppercase">Historia zdarzeń synchronizacji baz sankcyjnych</div>
+      <div class="overflow-x-auto rounded-xl border border-slate-200">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+              <th class="p-2">Źródło</th>
+              <th class="p-2">Status</th>
+              <th class="p-2">Liczba wpisów</th>
+              <th class="p-2">Komunikat</th>
+              <th class="p-2">Data i godzina</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 bg-white">
+            {% for log in sync_logs %}
+            <tr>
+              <td class="p-2 font-mono font-bold">{{ log.source }}</td>
+              <td class="p-2">
+                {% if log.status == 'SUCCESS' %}
+                  <span class="text-emerald-700 font-bold">✓ {{ log.status }}</span>
+                {% else %}
+                  <span class="text-rose-700 font-bold">❌ {{ log.status }}</span>
+                {% endif %}
+              </td>
+              <td class="p-2 font-mono">{{ log.entries_count }}</td>
+              <td class="p-2 text-slate-600">{{ log.message }}</td>
+              <td class="p-2 font-mono text-slate-500">{{ log.synced_at[:19]|replace('T',' ') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   {% endif %}
 </div>

@@ -40,9 +40,8 @@ from src.web.routers import batch, history, how_it_works, sanctions, verify
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Inicjalizuje bazę SQLite, katalog audytów oraz referencyjne listy sankcyjne i spółek giełdowych."""
-    import asyncio
-    from src.domain.dictionaries.public_companies import sync_public_companies_from_web
+    """Inicjalizuje bazę SQLite, katalog audytów oraz uruchamia asynchroniczną pętlę aktualizacji słowników."""
+    from src.services.dictionary_sync_manager import DictionarySyncManager
 
     if not getattr(app.state, "db", None):
         app.state.db = Database(DB_PATH)
@@ -50,10 +49,14 @@ async def lifespan(app: FastAPI):
         app.state.audits_dir = AUDITS_DIR
     seed_default_sanctions(app.state.db)
 
-    # Odświeżenie listy spółek giełdowych w tle (nie blokuje startu serwera)
-    asyncio.create_task(sync_public_companies_from_web(force=False))
+    # Inicjalizacja zarządcy słowników i start asynchronicznego harmonogramu aktualizacji w tle
+    sync_manager = DictionarySyncManager(app.state.db)
+    app.state.dict_sync_manager = sync_manager
+    sync_manager.start_background_sync(check_interval_seconds=3600)  # Sprawdzanie co godzinę
 
     yield
+
+    sync_manager.stop_background_sync()
 
 
 app = FastAPI(

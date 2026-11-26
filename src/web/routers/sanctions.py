@@ -17,14 +17,17 @@ async def registries_page(request: Request):
     from src.domain.dictionaries.public_companies import get_public_companies_stats
     from src.domain.dictionaries.virtual_offices_catalog import KNOWN_MASS_REGISTRATION_PATTERNS, VIRTUAL_OFFICE_KEYWORDS
     from src.domain.dictionaries.pkd_catalog import HIGH_RISK_AML_PKD, REGULATED_KNF_PKD
+    from src.web.dependencies import get_dict_sync_manager
 
     db = get_db(request)
     seed_default_sanctions(db)
+    sync_mgr = get_dict_sync_manager(request)
     ctx = base_context(request, active_tab="registries")
     ctx["sync_logs"] = db.get_last_sanction_syncs()
     ctx["ceidg_configured"] = bool(CEIDG_API_TOKEN)
     ctx["sanctions_counts"] = db.count_sanctions_by_source()
     ctx["public_companies_stats"] = get_public_companies_stats()
+    ctx["all_dictionaries"] = sync_mgr.get_dictionaries_status()
     ctx["dictionaries_stats"] = {
         "virtual_offices_patterns": len(KNOWN_MASS_REGISTRATION_PATTERNS),
         "virtual_offices_keywords": len(VIRTUAL_OFFICE_KEYWORDS),
@@ -32,6 +35,28 @@ async def registries_page(request: Request):
         "pkd_knf": len(REGULATED_KNF_PKD),
     }
     return templates.TemplateResponse(request=request, name="pages/registries.html", context=ctx)
+
+
+@router.post("/sync-all", response_class=HTMLResponse)
+async def trigger_sync_all_dictionaries(request: Request):
+    """Wymusza natychmiastową synchronizację wszystkich słowników i list sankcyjnych."""
+    from src.web.dependencies import get_dict_sync_manager
+
+    sync_mgr = get_dict_sync_manager(request)
+    results = await sync_mgr.sync_stale_dictionaries(force=True)
+    db = get_db(request)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/sanctions_sync_status.html",
+        context={
+            "request": request,
+            "sync_logs": db.get_last_sanction_syncs(),
+            "sanctions_counts": db.count_sanctions_by_source(),
+            "all_dictionaries": sync_mgr.get_dictionaries_status(),
+            "results": results,
+        },
+    )
 
 
 @router.post("/sync-public-companies", response_class=HTMLResponse)

@@ -8,18 +8,23 @@
   <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div>
       <h1 class="text-xl font-bold text-slate-900">🏛️ Rejestry Publiczne i Listy Sankcyjne</h1>
-      <p class="text-xs text-slate-500 mt-1">Konfiguracja źródeł danych oraz synchronizacja oficjalnych list sankcyjnych MSWiA i Unii Europejskiej.</p>
+      <p class="text-xs text-slate-500 mt-1">
+        Cykliczna, automatyczna synchronizacja w tle (asyncio) oraz monitorowanie dat ważności słowników i wykrywanie błędów.
+      </p>
     </div>
-    <form hx-post="/rejestry/sync" hx-target="#sync-status-container" hx-indicator="#sync-spinner">
-      <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm cursor-pointer">
-        🔄 Synchronizuj listy sankcyjne MSWiA & UE
-      </button>
-    </form>
+    <div class="flex items-center gap-2">
+      <form hx-post="/rejestry/sync-all" hx-target="#sync-status-container" hx-indicator="#sync-spinner">
+        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm cursor-pointer flex items-center gap-1.5">
+          <span>🔄</span>
+          <span>Wymuś synchronizację wszystkich baz</span>
+        </button>
+      </form>
+    </div>
   </div>
 
   <div id="sync-spinner" class="htmx-indicator items-center space-x-2 text-xs text-blue-600 font-semibold">
     <span>⏳</span>
-    <span>Pobieranie aktualnych wykazów sankcyjnych MSWiA i UE...</span>
+    <span>Trwa asynchroniczne pobieranie i aktualizacja baz sankcyjnych oraz rejestrów referencyjnych...</span>
   </div>
 
   <!-- Status źródeł -->

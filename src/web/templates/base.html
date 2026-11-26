@@ -14,7 +14,30 @@
 
     {% include "components/navbar.html" %}
 
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+        {% if dict_issues and dict_issues.has_issues %}
+            <div class="p-3.5 rounded-xl border {% if dict_issues.error_count > 0 %}bg-rose-50 border-rose-200 text-rose-900{% else %}bg-amber-50 border-amber-200 text-amber-900{% endif %} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs shadow-xs">
+                <div class="flex items-center space-x-2.5">
+                    <span class="text-base">{% if dict_issues.error_count > 0 %}⚠️{% else %}ℹ️{% endif %}</span>
+                    <div>
+                        <strong class="font-bold">
+                            {% if dict_issues.error_count > 0 %}
+                                Wykryto błąd aktualizacji słowników ({{ dict_issues.error_count }} błąd)!
+                            {% else %}
+                                Część słowników referencyjnych wymaga aktualizacji ({{ dict_issues.stale_count }} przedawnionych).
+                            {% endif %}
+                        </strong>
+                        <span class="block sm:inline text-[11px] opacity-90 sm:ml-1">
+                            Aplikacja wykonuje odświeżanie w tle (asyncio). Możesz także wywołać synchronizację ręcznie.
+                        </span>
+                    </div>
+                </div>
+                <a href="/rejestry" class="px-3 py-1.5 rounded-lg bg-white border font-bold text-xs shadow-2xs hover:bg-slate-50 transition-colors shrink-0 text-center {% if dict_issues.error_count > 0 %}text-rose-700 border-rose-300{% else %}text-amber-800 border-amber-300{% endif %}">
+                    Przejdź do Rejestrów &rarr;
+                </a>
+            </div>
+        {% endif %}
+
         {% block content %}{% endblock %}
     </main>
 

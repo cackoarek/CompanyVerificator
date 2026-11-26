@@ -103,8 +103,19 @@ def get_audit_service(request: Request) -> AuditService:
     return AuditService(db=get_db(request), audits_dir=get_audits_dir(request))
 
 
+def get_dict_sync_manager(request: Request):
+    from src.services.dictionary_sync_manager import DictionarySyncManager
+    mgr = getattr(request.app.state, "dict_sync_manager", None)
+    if not mgr:
+        mgr = DictionarySyncManager(get_db(request))
+        request.app.state.dict_sync_manager = mgr
+    return mgr
+
+
 def base_context(request: Request, active_tab: str) -> Dict[str, Any]:
     db = get_db(request)
+    sync_mgr = get_dict_sync_manager(request)
+    dict_issues = sync_mgr.has_any_errors_or_stale()
     return {
         "request": request,
         "app_version": __version__,
@@ -112,4 +123,5 @@ def base_context(request: Request, active_tab: str) -> Dict[str, Any]:
         "stats": db.get_verification_stats(),
         "sanctions_counts": db.count_sanctions_by_source(),
         "allow_deletion": ALLOW_DELETION,
+        "dict_issues": dict_issues,
     }

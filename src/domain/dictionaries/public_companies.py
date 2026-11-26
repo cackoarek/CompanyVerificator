@@ -115,8 +115,9 @@ def get_public_companies_stats() -> dict:
     companies = load_cached_companies()
     target_file = CACHE_FILE if CACHE_FILE.exists() else SEED_FILE
     mtime = target_file.stat().st_mtime if target_file.exists() else 0.0
-    from datetime import datetime
+    from datetime import datetime, timezone
     last_sync_str = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S") if mtime > 0 else "Brak"
+    last_sync_iso = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat() if mtime > 0 else None
     
     gpw_count = sum(1 for c in companies if c.market == "GPW")
     nc_count = sum(1 for c in companies if c.market == "NEWCONNECT")
@@ -126,6 +127,7 @@ def get_public_companies_stats() -> dict:
         "gpw_count": gpw_count,
         "nc_count": nc_count,
         "last_sync": last_sync_str,
+        "last_sync_iso": last_sync_iso,
         "cache_file": str(target_file.name),
         "is_live_cache": CACHE_FILE.exists(),
     }
