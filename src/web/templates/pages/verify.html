@@ -45,16 +45,24 @@
           </div>
         </div>
       </div>
-      <div class="grid grid-cols-3 gap-2 text-center text-xs">
-        <div class="bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-center text-xs shrink-0">
+        <div class="bg-white/5 border border-white/10 rounded-xl px-2.5 py-2" title="Wszystkie wykonane weryfikacje">
           <div class="text-[10px] text-slate-400">Sprawdzeń</div>
           <div class="text-base font-bold font-mono text-white">{{ stats.total }}</div>
         </div>
-        <div class="bg-emerald-500/10 border border-emerald-400/20 rounded-xl px-3 py-2">
-          <div class="text-[10px] text-emerald-300">Niskie ryzyko</div>
+        <div class="bg-emerald-500/10 border border-emerald-400/20 rounded-xl px-2.5 py-2" title="Niskie ryzyko – automatyczna akceptacja">
+          <div class="text-[10px] text-emerald-300">Niskie (OK)</div>
           <div class="text-base font-bold font-mono text-emerald-300">{{ stats.low_risk }}</div>
         </div>
-        <div class="bg-red-500/10 border border-red-400/20 rounded-xl px-3 py-2">
+        <div class="bg-amber-500/10 border border-amber-400/20 rounded-xl px-2.5 py-2" title="Średnie ryzyko – wymaga standardowego wyjaśnienia">
+          <div class="text-[10px] text-amber-300">Średnie</div>
+          <div class="text-base font-bold font-mono text-amber-300">{{ stats.medium_risk }}</div>
+        </div>
+        <div class="bg-orange-500/10 border border-orange-400/20 rounded-xl px-2.5 py-2" title="Wysokie ryzyko – wzmożone środki bezpieczeństwa (EDD)">
+          <div class="text-[10px] text-orange-300">Wysokie</div>
+          <div class="text-base font-bold font-mono text-orange-300">{{ stats.high_risk }}</div>
+        </div>
+        <div class="bg-red-500/10 border border-red-400/20 rounded-xl px-2.5 py-2 col-span-2 sm:col-span-1" title="Krytyczne ryzyko – bezwzględna blokada (sankcje)">
           <div class="text-[10px] text-red-300">Sankcje STOP</div>
           <div class="text-base font-bold font-mono text-red-300">{{ stats.critical_stop }}</div>
         </div>
