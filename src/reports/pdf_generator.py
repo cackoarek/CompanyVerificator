@@ -77,9 +77,10 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
     doc = SimpleDocTemplate(str(path), pagesize=A4, leftMargin=35, rightMargin=35, topMargin=28, bottomMargin=28)
 
     hdr_brand = ParagraphStyle("HdrBrand", fontName=font_bold, fontSize=7.5, leading=9.5, textColor=colors.HexColor("#38BDF8"))
-    hdr_title = ParagraphStyle("HdrTitle", fontName=font_bold, fontSize=12.5, leading=15, textColor=colors.white)
-    hdr_sub = ParagraphStyle("HdrSub", fontName=font_reg, fontSize=7, leading=9, textColor=colors.HexColor("#CBD5E1"))
+    hdr_title = ParagraphStyle("HdrTitle", fontName=font_bold, fontSize=12, leading=14.5, textColor=colors.white)
+    hdr_sub = ParagraphStyle("HdrSub", fontName=font_reg, fontSize=6.5, leading=8.5, textColor=colors.HexColor("#CBD5E1"))
     hdr_right = ParagraphStyle("HdrRight", fontName=font_bold, fontSize=8, leading=10, textColor=colors.HexColor("#F8FAFC"), alignment=2)
+    hdr_right_name = ParagraphStyle("HdrRightName", fontName=font_bold, fontSize=7.5, leading=9.5, textColor=colors.HexColor("#38BDF8"), alignment=2)
     hdr_right_sub = ParagraphStyle("HdrRightSub", fontName=font_reg, fontSize=6.5, leading=8.5, textColor=colors.HexColor("#94A3B8"), alignment=2)
     sec_hdr = ParagraphStyle("SecHdr", fontName=font_bold, fontSize=8.5, leading=11, textColor=colors.HexColor("#0F172A"))
     cell_bold = ParagraphStyle("CellB", fontName=font_bold, fontSize=7.5, leading=10, textColor=colors.HexColor("#334155"))
@@ -101,10 +102,14 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
             ],
             [
                 Paragraph("Podstawa: art. 34 ustawy AML • art. 22p PIT • art. 96b i 108a ustawy o VAT", hdr_sub),
+                Paragraph(f"<b>{_esc(card.nazwa)}</b>", hdr_right_name),
+            ],
+            [
+                Paragraph("", hdr_sub),
                 Paragraph(f"Audyt: {_esc(card.data_weryfikacji_tekst)} • IP: {_esc(card.client_ip or 'nieznane')}", hdr_right_sub),
             ],
         ],
-        colWidths=[360, 165],
+        colWidths=[295, 230],
     )
     header_table.setStyle(
         TableStyle(
