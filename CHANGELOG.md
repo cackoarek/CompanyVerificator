@@ -14,9 +14,10 @@ Format wzorowany na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
   - Zabezpieczenie przed atakami brute-force: po 5 nieudanych próbach logowania z danego adresu IP następuje automatyczna blokada na 5 godzin (parametr `LOGIN_LOCKOUT_HOURS`, domyślnie 5h, kod HTTP 429).
 - **Plik dziennika zdarzeń (`companyVerificator.log`):**
   - Nowy moduł `src/core/logging_config.py` zapisujący każde zdarzenie, błąd sieciowy oraz wynik weryfikacji i operacje analityka do pliku `companyVerificator.log`.
-- **Zarządzanie historią weryfikacji:**
+- **Zarządzanie historią weryfikacji i retencja audytowa:**
   - Możliwość usunięcia pojedynczych wpisów z historii (przycisk `✕`) oraz wyczyszczenia całej historii (`/historia/wyczysc`) w widoku głównym oraz w pełnym rejestrze.
-  - Metody bazy danych `delete_verification()` oraz `delete_all_verifications()` wraz z kaskadowym usuwaniem zdarzeń audytowych.
+  - Usunięcie z interfejsu WWW usuwa wyłącznie wpisy z bazy prezentacyjnej SQLite – **pliki dowodowe na dysku (`data/audits/`) pozostają nienaruszone** na potrzeby ścieżki audytu AML.
+  - Rejestrowanie internetowego adresu IP sprawdzającego (`client_ip`) – zapisywany w bazie, w plikach JSON/MD/PDF, w logach oraz prezentowany w tabeli historii.
 - **Modal podglądu podmiotów sankcyjnych:**
   - Klikalne kafelki z liczbą wpisów na stronie `/rejestry` (`LOCAL_SEED`, `MSWIA`, `EU`) otwierające modal z tabelą szczegółów (nazwy, aliasy, NIP/KRS, podstawa prawna).
   - Nowy endpoint `GET /rejestry/entries/{source}`.

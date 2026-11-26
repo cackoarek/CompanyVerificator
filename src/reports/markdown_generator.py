@@ -52,7 +52,7 @@ def render_card_markdown(card: VerificationCard) -> str:
 
     lines: List[str] = [
         "# KARTA WERYFIKACJI KONTRAHENTA (AML / COMPLIANCE / NALEŻYTA STARANNOŚĆ)",
-        f"*ID audytu: `{card.id}` | Data: `{card.data_weryfikacji_tekst}` (UTC: `{card.data_weryfikacji}`)*",
+        f"*ID audytu: `{card.id}` | Data: `{card.data_weryfikacji_tekst}` (UTC: `{card.data_weryfikacji}`) | IP badającego: `{card.client_ip or 'nieznane'}`*",
     ]
 
     if card.blad_polaczenia:

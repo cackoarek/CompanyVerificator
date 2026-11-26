@@ -58,11 +58,12 @@ class VerificationService:
         status_pep: bool = False,
         force: bool = False,
         batch_id: Optional[str] = None,
+        client_ip: Optional[str] = None,
         allow_test_nips: bool = False,
         client: Optional[httpx.AsyncClient] = None,
     ) -> VerificationCard:
         """Przeprowadza pełną, deterministyczną procedurę należytej staranności."""
-        app_logger.info(f"Rozpoczęcie weryfikacji podmiotu: {identifier} (force={force}, rachunek={rachunek_bankowy is not None})")
+        app_logger.info(f"Rozpoczęcie weryfikacji podmiotu: {identifier} (IP: {client_ip or 'nieznane'}, force={force}, rachunek={rachunek_bankowy is not None})")
         clf = classify_identifier(identifier, allow_test_nips=allow_test_nips)
 
         if not clf.is_valid:
@@ -112,6 +113,7 @@ class VerificationService:
             if own_client:
                 await http_client.aclose()
 
+        card.client_ip = client_ip
         card.sha256_hash = compute_card_sha256(card)
         self._persist_card(card)
 
@@ -148,6 +150,7 @@ class VerificationService:
                 "mf_request_id": card.mf_request_id,
                 "card_json": json.dumps(card.to_dict(), ensure_ascii=False),
                 "batch_id": card.batch_id,
+                "client_ip": card.client_ip,
                 "created_at": card.data_weryfikacji,
             }
         )

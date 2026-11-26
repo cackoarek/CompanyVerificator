@@ -69,16 +69,21 @@ Powtórnie sprawdznie ostatecznie przeszło - czyli poprzednie wykonania pewnie 
 ## 6
 
 W dziale "Ostatnie transakcje" daj możliwość skasowania "Wszystkich" albo poszczególnych sprawdzeń z historii.
+*Uwaga dodatkowa:* Kasowanie ma dotyczyć wyłącznie widoku w interfejsie WWW (bazy weryfikacji prezentacyjnej), natomiast pliki dowodowe w archiwum dyskowym (`data/audits/`) mają być nienaruszone i bezwzględnie zachowane dla celów audytu. Dodatkowo należy rejestrować adres IP, z którego wykonano sprawdzenie.
 
 **Status:** ZREALIZOWANE
 **Szczegóły realizacji:**
-- W `src/core/database.py` zaimplementowano metody `delete_verification(verification_id)` oraz `delete_all_verifications()`, które usuwają wpisy z tabeli weryfikacji wraz z powiązanymi wpisami w tabeli audytowej `audit_events`.
-- W routerze `src/web/routers/history.py` dodano endpointy:
-  - `DELETE /historia/{verification_id}` – usuwa pojedynczy wpis z bazy i natychmiast odświeża tabelę przez HTMX.
-  - `POST /historia/wyczysc` – usuwa całą historię weryfikacji.
-- W szablonie `src/web/templates/partials/history_table.html` dodano przycisk `✕` przy każdym wierszu z monitem potwierdzenia usunięcia wpisu.
-- W widoku głównym `src/web/templates/pages/verify.html` dodano przycisk *"Wyczyść wszystkie"* w nagłówku sekcji *"Ostatnie weryfikacje"*.
-- W widoku rejestru `src/web/templates/pages/history.html` dodano przycisk *"🗑️ Wyczyść całą historię"*.
+- **Zachowanie plików dowodowych (nienaruszalność audytu):**
+  - Wszystkie wygenerowane pliki dowodowe (`{identifier}-raw.json`, `{identifier}-karta.md`, `{identifier}-karta.pdf`) w katalogu `data/audits/RRRR/MM/{id}/` są trwale zachowywane na dysku i **nie są usuwane** przy czyszczeniu historii w interfejsie WWW. Zapewnia to pełną zgodność z wymogami retencji i ścieżki audytu AML.
+  - Usunięcie z interfejsu WWW usuwa jedynie rekordy z tabeli operacyjnej bazy SQLite, zwalniając listę i pamięć podręczną prezentacji.
+- **Rejestrowanie adresu IP sprawdzającego:**
+  - Dodano pole `client_ip` do modelu `VerificationCard`, schematu bazy danych `verifications` oraz zrzutów dowodowych JSON, MD i PDF.
+  - W `src/web/routers/verify.py` adres IP użytkownika pobierany jest z nagłówków proxy (`X-Forwarded-For`, `X-Real-IP`) lub bezpośredniego gniazda klienta (`request.client.host`).
+  - Adres IP jest zapisywany w bazie SQLite, w pliku `companyVerificator.log`, prezentowany w tabeli historii pod datą weryfikacji oraz umieszczany w nagłówku urzędowym raportu PDF i Markdown.
+- **Interfejs czyszczenia:**
+  - W `src/web/templates/partials/history_table.html` dodano przycisk `✕` przy każdym wierszu z monitem potwierdzenia.
+  - W widoku głównym `src/web/templates/pages/verify.html` dodano przycisk *"Wyczyść wszystkie"* w nagłówku sekcji *"Ostatnie weryfikacje"*.
+  - W widoku rejestru `src/web/templates/pages/history.html` dodano przycisk *"🗑️ Wyczyść całą historię"*.
 
 ---
 

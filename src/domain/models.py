@@ -118,8 +118,9 @@ class VerificationCard:
     raw_evidence: Dict[str, Any] = field(default_factory=dict)
     sha256_hash: str = ""
 
-    # 7. Metadane wsadowe (opcjonalne)
+    # 7. Metadane wsadowe i audyt sieciowy (opcjonalne)
     batch_id: Optional[str] = None
+    client_ip: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)

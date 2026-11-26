@@ -92,7 +92,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
             ],
             [
                 Paragraph("Podstawa: art. 34 ustawy AML • art. 22p PIT • art. 96b i 108a ustawy o VAT", hdr_sub),
-                Paragraph(f"Audyt: {_esc(card.data_weryfikacji_tekst)} • ID: {_esc(card.id[:8])}", hdr_right_sub),
+                Paragraph(f"Audyt: {_esc(card.data_weryfikacji_tekst)} • IP: {_esc(card.client_ip or 'nieznane')}", hdr_right_sub),
             ],
         ],
         colWidths=[360, 165],

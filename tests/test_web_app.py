@@ -11,14 +11,19 @@ from src.core.security import reset_login_rate_limits
 from src.main import app
 
 
-def _make_client(tmp_path: Path) -> TestClient:
+def _make_client(tmp_path: Path, monkeypatch=None) -> TestClient:
     app.state.db = Database(tmp_path / "web_test.db")
     app.state.audits_dir = tmp_path / "audits"
+    if monkeypatch:
+        monkeypatch.setattr("src.main.WEB_PASSWORD", "")
+        monkeypatch.setattr("src.main.ACCESS_TOKEN", "")
+        monkeypatch.delenv("WEB_PASSWORD", raising=False)
+        monkeypatch.delenv("CV_ACCESS_TOKEN", raising=False)
     return TestClient(app)
 
 
-def test_web_home_verify_history_and_exports(tmp_path: Path):
-    client = _make_client(tmp_path)
+def test_web_home_verify_history_and_exports(tmp_path: Path, monkeypatch):
+    client = _make_client(tmp_path, monkeypatch)
 
     resp_home = client.get("/")
     assert resp_home.status_code == 200
@@ -84,15 +89,15 @@ def test_web_home_verify_history_and_exports(tmp_path: Path):
     assert json_resp.json()["mf_request_id"] == "web-mf-1"
 
 
-def test_web_batch_and_registries_pages(tmp_path: Path):
-    client = _make_client(tmp_path)
+def test_web_batch_and_registries_pages(tmp_path: Path, monkeypatch):
+    client = _make_client(tmp_path, monkeypatch)
     assert client.get("/wsadowa").status_code == 200
     assert client.get("/rejestry").status_code == 200
     assert client.get("/health").json()["status"] == "ok"
 
 
 def test_csrf_and_token_auth_hardening(tmp_path: Path, monkeypatch):
-    client = _make_client(tmp_path)
+    client = _make_client(tmp_path, monkeypatch)
     reset_login_rate_limits()
 
     # 1. CSRF z obcej domeny -> 403
@@ -104,6 +109,7 @@ def test_csrf_and_token_auth_hardening(tmp_path: Path, monkeypatch):
     assert csrf_resp.status_code == 403
 
     # 2. Ochrona tokenem CV_ACCESS_TOKEN
+    monkeypatch.setattr("src.main.ACCESS_TOKEN", "super-secret-compliance-token-123456")
     monkeypatch.setenv("CV_ACCESS_TOKEN", "super-secret-compliance-token-123456")
     unauth = client.get("/")
     assert unauth.status_code == 401
@@ -115,9 +121,10 @@ def test_csrf_and_token_auth_hardening(tmp_path: Path, monkeypatch):
 
 
 def test_web_password_protection_and_lockout(tmp_path: Path, monkeypatch):
-    client = _make_client(tmp_path)
+    client = _make_client(tmp_path, monkeypatch)
     reset_login_rate_limits()
 
+    monkeypatch.setattr("src.main.WEB_PASSWORD", "TajneHaslo123!")
     monkeypatch.setenv("WEB_PASSWORD", "TajneHaslo123!")
     monkeypatch.setenv("LOGIN_LOCKOUT_HOURS", "5")
 
@@ -142,8 +149,8 @@ def test_web_password_protection_and_lockout(tmp_path: Path, monkeypatch):
     assert "Dostęp tymczasowo zablokowany" in blocked.text
 
 
-def test_history_delete_item_and_clear_all(tmp_path: Path):
-    client = _make_client(tmp_path)
+def test_history_delete_item_and_clear_all(tmp_path: Path, monkeypatch):
+    client = _make_client(tmp_path, monkeypatch)
     db = client.app.state.db
 
     # Dodaj 2 testowe wpisy

@@ -46,6 +46,12 @@ async def verify_single_company(
         except InvalidOperation:
             pass
 
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or request.headers.get("x-real-ip", "").strip()
+        or (request.client.host if request.client else "127.0.0.1")
+    )
+
     svc = get_verification_service(request)
     card = await svc.verify_company(
         identifier=identifier.strip(),
@@ -54,6 +60,7 @@ async def verify_single_company(
         kwota_transakcji=kwota_dec,
         status_pep=status_pep,
         force=force,
+        client_ip=client_ip,
     )
 
     audit_svc = get_audit_service(request)

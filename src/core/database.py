@@ -59,6 +59,7 @@ class Database:
                     mf_request_id TEXT,
                     card_json TEXT NOT NULL,
                     batch_id TEXT,
+                    client_ip TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
@@ -128,13 +129,14 @@ class Database:
                     id, identifier, identifier_kind, nip, krs, regon, nazwa, forma_prawna,
                     poziom_ryzyka, decyzja, analyst_status, status_vat, status_rachunku,
                     blad_polaczenia, sankcje_hit, status_pep, sha256_hash, mf_request_id,
-                    card_json, batch_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    card_json, batch_id, client_ip, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     poziom_ryzyka = excluded.poziom_ryzyka,
                     decyzja = excluded.decyzja,
                     analyst_status = excluded.analyst_status,
                     card_json = excluded.card_json,
+                    client_ip = COALESCE(excluded.client_ip, verifications.client_ip),
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -158,6 +160,7 @@ class Database:
                     record.get("mf_request_id"),
                     record["card_json"],
                     record.get("batch_id"),
+                    record.get("client_ip"),
                     record.get("created_at", now),
                     now,
                 ),
