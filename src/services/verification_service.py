@@ -398,7 +398,16 @@ class VerificationService:
         sankcje_mswia = any(h.source in ("MSWIA", "LOCAL_SEED") for h in sanction_hits)
         sankcje_ue = any(h.source in ("EU", "LOCAL_SEED") for h in sanction_hits)
         sankcje_inne = any(h.source not in ("MSWIA", "EU", "LOCAL_SEED") for h in sanction_hits)
-        sankcje_szczegoly = [f"[{h.source} / {h.confidence}] {h.reason}" for h in sanction_hits]
+        
+        source_labels = {
+            "MSWIA": "Lista MSWiA (Polska)",
+            "EU": "Lista Sankcyjna UE",
+            "LOCAL_SEED": "Wykaz sankcyjny MSWiA/UE",
+        }
+        sankcje_szczegoly = [
+            f"[{source_labels.get(h.source, h.source)} • Dopasowanie: {h.confidence}] {h.reason}"
+            for h in sanction_hits
+        ]
 
         blad_polaczenia = len(niekompletne_zrodla) > 0
 

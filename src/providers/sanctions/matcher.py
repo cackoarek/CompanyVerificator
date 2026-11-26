@@ -84,6 +84,9 @@ def match_sanctions(
 
         # 1. Identyfikatory rejestrowe (EXACT)
         if norm_nip and len(norm_nip) == 10 and s_nip and norm_nip == s_nip:
+            hit_reason = f"Identyfikator NIP {norm_nip} figuruje w wykazie sankcyjnym podmiotu '{s_name}'"
+            if reason:
+                hit_reason += f" ({reason})"
             _add_hit(
                 SanctionHit(
                     source=source,
@@ -91,12 +94,15 @@ def match_sanctions(
                     matched_value=norm_nip,
                     sanctioned_name=s_name,
                     confidence="EXACT",
-                    reason=reason or f"NIP {norm_nip} figuruje na liście sankcyjnej ({source})",
+                    reason=hit_reason,
                 )
             )
             continue
 
         if norm_krs and len(norm_krs) == 10 and s_krs and norm_krs == s_krs:
+            hit_reason = f"Numer KRS {norm_krs} figuruje w wykazie sankcyjnym podmiotu '{s_name}'"
+            if reason:
+                hit_reason += f" ({reason})"
             _add_hit(
                 SanctionHit(
                     source=source,
@@ -104,7 +110,7 @@ def match_sanctions(
                     matched_value=norm_krs,
                     sanctioned_name=s_name,
                     confidence="EXACT",
-                    reason=reason or f"KRS {norm_krs} figuruje na liście sankcyjnej ({source})",
+                    reason=hit_reason,
                 )
             )
             continue
@@ -118,6 +124,9 @@ def match_sanctions(
                 if not c_norm or len(c_norm) < 4:
                     continue
                 if c_norm == norm_comp or (c_tokens and c_tokens == comp_tokens):
+                    hit_reason = f"Nazwa podmiotu '{company_name}' jest tożsama z podmiotem sankcjonowanym '{s_name}'"
+                    if reason:
+                        hit_reason += f" ({reason})"
                     _add_hit(
                         SanctionHit(
                             source=source,
@@ -125,12 +134,15 @@ def match_sanctions(
                             matched_value=company_name,
                             sanctioned_name=s_name,
                             confidence="HIGH",
-                            reason=reason or f"Nazwa podmiotu odpowiada wpisowi sankcyjnemu '{s_name}'",
+                            reason=hit_reason,
                         )
                     )
                     matched_entity = True
                     break
                 if (len(c_norm) >= 5 and c_norm in norm_comp) or (c_tokens and c_tokens.issubset(comp_tokens)):
+                    hit_reason = f"Zbieżność nazwy '{company_name}' z podmiotem sankcjonowanym '{s_name}'"
+                    if reason:
+                        hit_reason += f" ({reason})"
                     _add_hit(
                         SanctionHit(
                             source=source,
@@ -138,7 +150,7 @@ def match_sanctions(
                             matched_value=company_name,
                             sanctioned_name=s_name,
                             confidence="HIGH" if len(c_tokens) >= 1 and len(c_norm) >= 6 else "POSSIBLE",
-                            reason=reason or f"Zbieżność nazwy z wpisem sankcyjnym '{s_name}'",
+                            reason=hit_reason,
                         )
                     )
                     matched_entity = True
@@ -158,6 +170,9 @@ def match_sanctions(
                         continue
                     # p_tokens subset of c_tokens: "Ivan Testov" ⊂ "Ivan Petrovich Testov"
                     if len(p_tokens) >= 2 and p_tokens.issubset(c_tokens):
+                        hit_reason = f"Osoba powiązana/zarządzająca '{person}' figuruje na liście sankcyjnej jako '{s_name}'"
+                        if reason:
+                            hit_reason += f" ({reason})"
                         _add_hit(
                             SanctionHit(
                                 source=source,
@@ -165,12 +180,15 @@ def match_sanctions(
                                 matched_value=person,
                                 sanctioned_name=s_name,
                                 confidence="HIGH",
-                                reason=reason or f"Osoba powiązana '{person}' figuruje na liście ({s_name})",
+                                reason=hit_reason,
                             )
                         )
                         break
                     # c_tokens subset of p_tokens: "Ivan Petrovich Testov" ⊃ "Ivan Testov"
                     if len(c_tokens) >= 2 and c_tokens.issubset(p_tokens):
+                        hit_reason = f"Osoba powiązana/zarządzająca '{person}' figuruje na liście sankcyjnej jako '{s_name}'"
+                        if reason:
+                            hit_reason += f" ({reason})"
                         _add_hit(
                             SanctionHit(
                                 source=source,
@@ -178,13 +196,16 @@ def match_sanctions(
                                 matched_value=person,
                                 sanctioned_name=s_name,
                                 confidence="HIGH",
-                                reason=reason or f"Osoba powiązana '{person}' figuruje na liście ({s_name})",
+                                reason=hit_reason,
                             )
                         )
                         break
                     if len(c_tokens) == 1:
                         single = next(iter(c_tokens))
                         if len(single) >= 5 and single in p_tokens:
+                            hit_reason = f"Potencjalna zbieżność nazwiska osoby powiązanej '{person}' z wpisem sankcyjnym '{s_name}'"
+                            if reason:
+                                hit_reason += f" ({reason})"
                             _add_hit(
                                 SanctionHit(
                                     source=source,
@@ -192,7 +213,7 @@ def match_sanctions(
                                     matched_value=person,
                                     sanctioned_name=s_name,
                                     confidence="POSSIBLE",
-                                    reason=reason or f"Potencjalna zbieżność nazwiska osoby '{person}' z wpisem '{s_name}'",
+                                    reason=hit_reason,
                                 )
                             )
                             break

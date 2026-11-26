@@ -44,7 +44,7 @@ Format wzorowany na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 - **Czytelność sekcji Sankcji i CRBR (Beneficjentów Rzeczywistych):**
   - Rozdzielono listy sankcyjne (MSWiA / UE) od rejestru CRBR, eliminując mylne wrażenie, że brak wpisu w CRBR to sankcja międzynarodowa.
   - Zastąpiono surowy kod techniczny `BRAK_WPISU` czytelną etykietą `⚠️ Brak zgłoszenia w CRBR` z dokładnym wyjaśnieniem prawnym (obowiązek zgłoszenia osób kontrolujących spółkę z KRS pod rygorem kar do 1 mln zł wg ustawy AML).
-  - Dodano dedykowany alert dla rzeczywistych trafień sankcyjnych z wyszczególnieniem podstawy prawnej i wpisu.
+  - Wzbogacono prezentację trafień sankcyjnych: zamiast powtarzającego się ogólnego komunikatu system podaje teraz dokładny powód, źródło rejestru, typ dopasowania (NIP, KRS, Nazwa, Osoba powiązana), nazwę podmiotu/osoby w wykazie oraz konsekwencje prawne z art. 2 ustawy sankcyjnej.
   - Dodano dymki pomocy (tooltips `ℹ️ (?)`) wyjaśniające cel badania UBO i zasady działania CRBR.
 - **Aktualizacja API Hurtowni Danych CEIDG do wersji v3:**
   - Zaktualizowano endpoint do `https://dane.biznes.gov.pl/api/ceidg/v3/firmy` (wycofana przez MRiT wersja v2 zwracała błąd bramki API `404 No context-path`).
