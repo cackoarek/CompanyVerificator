@@ -13,7 +13,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from src.domain.enums import DecyzjaWspolpracy, PoziomRyzykaAML, StatusRachunkuBankowego
+from src.domain.enums import AnalystStatus, DecyzjaWspolpracy, PoziomRyzykaAML, StatusRachunkuBankowego
 from src.domain.models import BatchSummary, VerificationCard
 
 
@@ -150,19 +150,27 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
         PoziomRyzykaAML.KRYTYCZNE_STOP: '<font color="#DC2626"><b>[KRYTYCZNE – STOP]</b></font>',
     }.get(card.poziom_ryzyka, _esc(card.poziom_ryzyka.value))
 
+    analyst_color = {
+        AnalystStatus.APPROVED_AFTER_REVIEW: "#15803D",
+        AnalystStatus.REJECTED: "#DC2626",
+        AnalystStatus.PENDING_EXPLANATION: "#B45309",
+        AnalystStatus.AUTO: "#334155",
+    }.get(card.analyst_status, "#334155")
+
+    analyst_display = f'<font color="{analyst_color}" size="8.5"><b>{_esc(card.analyst_status.label)}</b></font>'
+
     decision_card = Table(
         [
             [
                 Paragraph(f"{dec_title}<br/>{dec_sub}", cell_norm),
                 Paragraph(
                     f"<b>Ryzyko:</b> {ryzyko_badge} ({card.risk_score}/100 pkt)<br/>"
-                    f"<b>Decyzja analityka:</b> {_esc(card.analyst_status.label)}<br/>"
-                    f"<b>System:</b> {_esc(card.osoba_weryfikujaca)}",
+                    f"<b>Decyzja analityka:</b><br/>{analyst_display}",
                     cell_norm,
                 ),
             ]
         ],
-        colWidths=[335, 190],
+        colWidths=[325, 200],
     )
     decision_card.setStyle(
         TableStyle(
@@ -359,7 +367,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
                 Paragraph(
                     f"<b>KRYPTOGRAFICZNA PIECZĘĆ AUDYTOWA (SHA-256):</b><br/>"
                     f"<code>{_esc(card.sha256_hash)}</code><br/>"
-                    f"Wymóg retencji dowodów: minimum 5 lat od końca roku obrotowego (art. 34 ustawy AML / art. 86 OP).",
+                    f"Silnik weryfikacyjny: {_esc(card.osoba_weryfikujaca)} • Wymóg retencji dowodów: min. 5 lat (art. 34 AML / art. 86 OP).",
                     footer_style,
                 )
             ]
