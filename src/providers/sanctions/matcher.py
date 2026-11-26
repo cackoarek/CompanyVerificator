@@ -147,7 +147,15 @@ def match_sanctions(
                     )
                     matched_entity = True
                     break
-                if (len(c_norm) >= 5 and c_norm in norm_comp) or (c_tokens and c_tokens.issubset(comp_tokens)):
+                # Warunek częściowej zbieżności:
+                # Zapobiega fałszywym trafieniom na pojedynczych pospolitych słowach (np. 'bank', 'invest', 'poland')
+                is_distinctive_match = False
+                if len(c_tokens) >= 2 and c_tokens.issubset(comp_tokens):
+                    is_distinctive_match = True
+                elif len(c_tokens) == 1 and (len(c_norm) >= 8 and c_norm in norm_comp):
+                    is_distinctive_match = True
+
+                if is_distinctive_match:
                     hit_reason = f"Zbieżność nazwy '{company_name}' z podmiotem sankcjonowanym '{s_name}'"
                     if reason:
                         hit_reason += f" ({reason}{date_suffix})"
@@ -159,7 +167,7 @@ def match_sanctions(
                             match_type="COMPANY_NAME",
                             matched_value=company_name,
                             sanctioned_name=s_name,
-                            confidence="HIGH" if len(c_tokens) >= 1 and len(c_norm) >= 6 else "POSSIBLE",
+                            confidence="HIGH" if len(c_tokens) >= 2 or len(c_norm) >= 10 else "POSSIBLE",
                             reason=hit_reason,
                         )
                     )
