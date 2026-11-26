@@ -107,12 +107,30 @@ def parse_krs_odpis(data: Dict[str, Any], krs: str) -> Dict[str, Any]:
 
     # Wspólnicy (Dział 1)
     wspolnicy: List[str] = []
+    wspolnicy_details: List[Dict[str, Any]] = []
     for wsp_item in (dzial1.get("wspolnicySpzoo") or dzial1.get("wspolnicy") or []):
         if isinstance(wsp_item, dict):
             name = _extract_person_name(wsp_item)
             udzialy = wsp_item.get("posiadaneUdzialy")
             if name:
                 wspolnicy.append(f"{name} ({udzialy})" if udzialy else name)
+
+            nazw_dict = wsp_item.get("nazwisko") or {}
+            nazw_str = nazw_dict.get("nazwiskoICzlon") if isinstance(nazw_dict, dict) else str(nazw_dict or "")
+            imiona_dict = wsp_item.get("imiona") or {}
+            imie_str = imiona_dict.get("imie") if isinstance(imiona_dict, dict) else str(imiona_dict or "")
+            ident = wsp_item.get("identyfikator") or {}
+            pesel_str = ident.get("pesel") if isinstance(ident, dict) else ""
+
+            wspolnicy_details.append(
+                {
+                    "imie": imie_str or "",
+                    "nazwisko": nazw_str or "",
+                    "pesel": pesel_str or "",
+                    "udzialy": udzialy or "",
+                    "name_full": name,
+                }
+            )
 
     return {
         "found": True,
@@ -127,6 +145,7 @@ def parse_krs_odpis(data: Dict[str, Any], krs: str) -> Dict[str, Any]:
         "upadlosc_lub_likwidacja": upadlosc_lub_likwidacja,
         "reprezentacja": reprezentacja,
         "wspolnicy": wspolnicy,
+        "wspolnicy_details": wspolnicy_details,
         "kody_pkd": kody_pkd,
         "pkd_glowny": pkd_glowny,
         "blad_polaczenia": False,

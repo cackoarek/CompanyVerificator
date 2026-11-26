@@ -23,6 +23,19 @@ def _normalize_person_tokens(full_name: str) -> set[str]:
     return set(re.findall(r"[a-z]{2,}", clean))
 
 
+def matches_masked(masked: str, raw: str) -> bool:
+    """Sprawdza czy zanonimizowana wartość z KRS (np. P*****, I***, 6**********) pasuje do pełnej wartości."""
+    if not masked or not raw:
+        return False
+    m = masked.strip().upper()
+    r = raw.strip().upper()
+    if m == r:
+        return True
+    # Maskowanie w KRS to litera i gwiazdki, np. P***** lub I***
+    pattern = "^" + re.escape(m).replace(r"\*", ".*") + "$"
+    return bool(re.match(pattern, r))
+
+
 def compare_krs_and_crbr(reprezentacja_krs: List[str], beneficjenci_crbr: List[str]) -> str:
     """
     Porównuje dane CRBR z reprezentacją z KRS.
@@ -125,6 +138,7 @@ async def fetch_crbr_beneficiaries(client: httpx.AsyncClient, nip: str) -> Dict[
         data = resp.json()
         beneficjenci: List[str] = []
 
+        raw_list = []
         if isinstance(data, list):
             # Odpowiedź z /adcrbr/api/pobierzZgloszeniaPoNIP to lista zgłoszeń, najświeższe na początku
             if not data:
@@ -132,30 +146,53 @@ async def fetch_crbr_beneficiaries(client: httpx.AsyncClient, nip: str) -> Dict[
                     "found": False,
                     "crbr_status": "BRAK_WPISU",
                     "beneficjenci": [],
+                    "beneficjenci_details": [],
                     "blad_polaczenia": False,
                     "raw": data,
                 }
             latest = data[0]
             raw_list = latest.get("listaBeneficjentow") or latest.get("beneficjenci") or []
-            for item in raw_list:
-                if isinstance(item, dict):
-                    formatted = _format_beneficiary_entry(item)
-                    if formatted and formatted not in beneficjenci:
-                        beneficjenci.append(formatted)
         elif isinstance(data, dict):
             # Wsparcie dla starszego formatu / mocków testowych
             raw_list = data.get("beneficjenci") or data.get("listaBeneficjentow") or []
-            for item in raw_list:
-                if isinstance(item, dict):
-                    formatted = _format_beneficiary_entry(item)
-                    if formatted and formatted not in beneficjenci:
-                        beneficjenci.append(formatted)
+
+        beneficjenci_details: List[Dict[str, Any]] = []
+        for item in raw_list:
+            if isinstance(item, dict):
+                formatted = _format_beneficiary_entry(item)
+                if formatted and formatted not in beneficjenci:
+                    beneficjenci.append(formatted)
+
+                imie = (item.get("imie") or item.get("pierwszeImie") or item.get("imiePierwsze") or "").strip()
+                nazwisko = (item.get("nazwisko") or "").strip()
+                pesel = (item.get("pesel") or "").strip()
+
+                obyw_list = item.get("obywatelstwo") or []
+                obyw_strs: List[str] = []
+                if isinstance(obyw_list, list):
+                    for o in obyw_list:
+                        if isinstance(o, dict):
+                            obyw_strs.append(o.get("nazwa") or o.get("kodKraju") or "")
+                        elif isinstance(o, str):
+                            obyw_strs.append(o)
+                obywatelstwo = ", ".join(filter(None, obyw_strs))
+
+                beneficjenci_details.append(
+                    {
+                        "imie": imie,
+                        "nazwisko": nazwisko,
+                        "pesel": pesel,
+                        "obywatelstwo": obywatelstwo,
+                        "formatted": formatted,
+                    }
+                )
 
         if not beneficjenci:
             return {
                 "found": False,
                 "crbr_status": "BRAK_WPISU",
                 "beneficjenci": [],
+                "beneficjenci_details": [],
                 "blad_polaczenia": False,
                 "raw": data,
             }
@@ -164,6 +201,7 @@ async def fetch_crbr_beneficiaries(client: httpx.AsyncClient, nip: str) -> Dict[
             "found": True,
             "crbr_status": "ZGODNY",
             "beneficjenci": beneficjenci,
+            "beneficjenci_details": beneficjenci_details,
             "blad_polaczenia": False,
             "raw": data,
         }

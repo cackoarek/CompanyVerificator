@@ -17,7 +17,7 @@ from src.domain.enums import DecyzjaWspolpracy, PoziomRyzykaAML, StatusRachunkuB
 from src.domain.models import VerificationCard
 from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
 from src.providers.ceidg_client import fetch_ceidg_info
-from src.providers.crbr_client import compare_krs_and_crbr, fetch_crbr_beneficiaries
+from src.providers.crbr_client import compare_krs_and_crbr, fetch_crbr_beneficiaries, matches_masked
 from src.providers.krs_client import fetch_krs_odpis
 from src.providers.mf_white_list import check_mf_bank_account, fetch_mf_white_list
 from src.providers.sanctions.matcher import match_sanctions
@@ -286,6 +286,7 @@ class VerificationService:
             crbr_status = "NIE_DOTYCZY_ZAGRANICZNA"
             reprezentacja: List[str] = []
             wspolnicy: List[str] = []
+            deanonymized_persons: List[str] = []
             beneficjenci: List[str] = []
             if vies_data.get("blad_polaczenia"):
                 status_rejestru = "BLAD_POLACZENIA"
@@ -297,12 +298,38 @@ class VerificationService:
             forma_prawna = krs_data.get("forma_prawna") or "SPÓŁKA HANDLOWA (KRS)"
             zrodlo_rejestru = "KRS (api-krs.ms.gov.pl) / Biała Lista MF"
             reprezentacja = list(krs_data.get("reprezentacja") or [])
-            wspolnicy = list(krs_data.get("wspolnicy") or [])
             beneficjenci = list(crbr_data.get("beneficjenci") or [])
+            benef_details = crbr_data.get("beneficjenci_details") or []
+            wsp_details = krs_data.get("wspolnicy_details") or []
+
+            # Dopasowywanie zanonimizowanych wspólników z KRS (np. I*** P*****, 6**********) do pełnych danych z CRBR
+            wspolnicy: List[str] = []
+            deanonymized_persons: List[str] = []
+            if wsp_details:
+                for kw in wsp_details:
+                    matched_cb = None
+                    for cb in benef_details:
+                        if matches_masked(kw.get("nazwisko", ""), cb.get("nazwisko", "")) and matches_masked(kw.get("imie", ""), cb.get("imie", "")):
+                            if not kw.get("pesel") or matches_masked(kw.get("pesel", ""), cb.get("pesel", "")):
+                                matched_cb = cb
+                                break
+
+                    name_display = kw.get("name_full") or f"{kw.get('imie', '')} {kw.get('nazwisko', '')}".strip()
+                    udzialy_str = f" ({kw['udzialy']})" if kw.get("udzialy") else ""
+                    if matched_cb:
+                        full_name = f"{matched_cb.get('imie', '')} {matched_cb.get('nazwisko', '')}".strip()
+                        obyw_str = f" [Obywatelstwo: {matched_cb.get('obywatelstwo')}]" if matched_cb.get("obywatelstwo") else ""
+                        wspolnicy.append(f"{name_display} ➔ {full_name}{obyw_str} (zidentyfikowany w CRBR){udzialy_str}")
+                        deanonymized_persons.append(full_name)
+                    else:
+                        wspolnicy.append(f"{name_display}{udzialy_str}" if udzialy_str else name_display)
+            else:
+                wspolnicy = list(krs_data.get("wspolnicy") or [])
+
             if crbr_data.get("blad_polaczenia"):
                 crbr_status = "BLAD_POLACZENIA"
             elif crbr_data.get("crbr_status") == "ZGODNY":
-                crbr_status = compare_krs_and_crbr(reprezentacja + wspolnicy, beneficjenci)
+                crbr_status = compare_krs_and_crbr(reprezentacja + wspolnicy + deanonymized_persons, beneficjenci)
             else:
                 crbr_status = crbr_data.get("crbr_status") or "BRAK_WPISU"
             status_rejestru = krs_data.get("status_rejestru") or ("BLAD_POLACZENIA" if mf_data.get("blad_polaczenia") else "AKTYWNY")
@@ -315,6 +342,7 @@ class VerificationService:
             )
             reprezentacja = [final_nazwa] if final_nazwa else []
             wspolnicy = []
+            deanonymized_persons = []
             beneficjenci = []
             crbr_status = "NIE_DOTYCZY"
             if ceidg_data.get("found"):
@@ -390,7 +418,7 @@ class VerificationService:
 
         # Krok 4: Listy sankcyjne (MSWiA / UE / baza lokalna)
         sanction_entries = self.db.list_sanction_entries()
-        persons_to_check = list(dict.fromkeys(reprezentacja + wspolnicy + beneficjenci))
+        persons_to_check = list(dict.fromkeys(reprezentacja + wspolnicy + deanonymized_persons + beneficjenci))
         sanction_hits = match_sanctions(
             nip=nip,
             krs=krs,
