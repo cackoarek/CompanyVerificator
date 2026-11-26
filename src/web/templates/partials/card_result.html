@@ -197,7 +197,7 @@
 
   <!-- Rachunki bankowe na Białej Liście (gdy nie podano konkretnego rachunku lub podano) -->
   {% if karta.rachunki_zgloszone_mf %}
-  <div class="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-2 text-xs" x-data="{ copiedIdx: null }">
+  <div class="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-2 text-xs" x-data="{ copiedIdx: null, expanded: false }">
     <div class="flex items-center justify-between">
       <div class="font-bold text-emerald-900 flex items-center gap-1.5">
         <span>🏦</span>
@@ -205,8 +205,10 @@
       </div>
       <span class="text-[11px] text-emerald-700 font-medium">Oficjalne konta rozliczeniowe podmiotu</span>
     </div>
+
+    <!-- Pierwsze 10 kont (zawsze widoczne) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-      {% for acc in karta.rachunki_zgloszone_mf %}
+      {% for acc in karta.rachunki_zgloszone_mf[:10] %}
       <div class="flex items-center justify-between bg-white px-2.5 py-2 rounded-lg border border-emerald-200 font-mono text-[10px] sm:text-[11px] text-slate-800 shadow-sm overflow-hidden">
         <span class="font-semibold tracking-tight truncate">{{ acc[:2] }} {{ acc[2:6] }} {{ acc[6:10] }} {{ acc[10:14] }} {{ acc[14:18] }} {{ acc[18:22] }} {{ acc[22:26] }}</span>
         <button
@@ -220,6 +222,35 @@
       </div>
       {% endfor %}
     </div>
+
+    <!-- Pozostałe konta (powyżej 10) rozwijane przyciskiem -->
+    {% if karta.rachunki_zgloszone_mf|length > 10 %}
+    <div x-show="expanded" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1" style="display: none;">
+      {% for acc in karta.rachunki_zgloszone_mf[10:] %}
+      <div class="flex items-center justify-between bg-white px-2.5 py-2 rounded-lg border border-emerald-200 font-mono text-[10px] sm:text-[11px] text-slate-800 shadow-sm overflow-hidden">
+        <span class="font-semibold tracking-tight truncate">{{ acc[:2] }} {{ acc[2:6] }} {{ acc[6:10] }} {{ acc[10:14] }} {{ acc[14:18] }} {{ acc[18:22] }} {{ acc[22:26] }}</span>
+        <button
+          type="button"
+          @click="navigator.clipboard.writeText('{{ acc }}'); copiedIdx = {{ loop.index0 + 10 }}; setTimeout(() => { if (copiedIdx === {{ loop.index0 + 10 }}) copiedIdx = null }, 2000)"
+          class="ml-2 px-2 py-0.5 rounded text-[10px] font-sans font-medium transition-colors shrink-0"
+          :class="copiedIdx === {{ loop.index0 + 10 }} ? 'bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'"
+        >
+          <span x-text="copiedIdx === {{ loop.index0 + 10 }} ? '✓ Skopiowano' : 'Kopiuj'"></span>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="pt-1 flex justify-center">
+      <button
+        type="button"
+        @click="expanded = !expanded"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100/80 hover:bg-emerald-200/80 text-emerald-900 font-semibold text-[11px] transition-colors cursor-pointer border border-emerald-300/80"
+      >
+        <span x-text="expanded ? '▲ Zwiń pozostałe rachunki' : '▼ Pokaż pozostałe rachunki (jeszcze {{ karta.rachunki_zgloszone_mf|length - 10 }})'"></span>
+      </button>
+    </div>
+    {% endif %}
   </div>
   {% elif karta.platnik_vat_czynny and not karta.zweryfikowany_rachunek and not karta.is_foreign %}
   <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
