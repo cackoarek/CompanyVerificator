@@ -302,6 +302,7 @@ class VerificationService:
             or mf_data.get("nazwa")
             or ceidg_data.get("nazwa")
             or vies_data.get("nazwa")
+            or (gus_data.get("nazwa") if gus_data else None)
             or nazwa_hint
             or f"Podmiot {clf_norm}"
         )
@@ -310,12 +311,14 @@ class VerificationService:
             or mf_data.get("adres")
             or ceidg_data.get("adres")
             or vies_data.get("adres")
+            or (gus_data.get("adres_rejestrowy") if gus_data else None)
             or None
         )
         final_regon = (
             krs_data.get("regon")
             or mf_data.get("regon")
             or ceidg_data.get("regon")
+            or (gus_data.get("regon") if gus_data else None)
             or (clf_norm if clf_kind == "REGON" else None)
         )
         kody_pkd = krs_data.get("kody_pkd") or ceidg_data.get("kody_pkd") or []
@@ -383,6 +386,16 @@ class VerificationService:
             else:
                 crbr_status = crbr_data.get("crbr_status") or "BRAK_WPISU"
             status_rejestru = krs_data.get("status_rejestru") or ("BLAD_POLACZENIA" if mf_data.get("blad_polaczenia") else "AKTYWNY")
+        elif gus_data:
+            # Podmiot odnaleziony w rejestrze REGON GUS (np. klub sportowy, stowarzyszenie w ewidencji starosty, fundacja)
+            forma_prawna = gus_data.get("forma_prawna") or "OSÓB PRAWNA / JEDNOSTKA ORGANIZACYJNA (GUS REGON)"
+            zrodlo_rejestru = "GUS REGON (Ewidencja Starosty / Rejestr jednostek)"
+            reprezentacja = [final_nazwa] if final_nazwa else []
+            wspolnicy = []
+            deanonymized_persons = []
+            beneficjenci = []
+            crbr_status = "NIE_DOTYCZY"
+            status_rejestru = "WYKRESLONY" if gus_data.get("data_zakonczenia") else "AKTYWNY"
         else:
             forma_prawna = "JEDNOOSOBOWA DZIAŁALNOŚĆ GOSPODARCZA (JDG)"
             _ceidg_configured = ceidg_data.get("configured", False)
