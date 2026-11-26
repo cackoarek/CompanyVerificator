@@ -145,3 +145,64 @@ async def test_batch_parsing_and_execution(tmp_path: Path):
     assert (batch_dir / "raport-wsadowy.pdf").exists()
     assert (batch_dir / "raport-wsadowy.md").exists()
     assert (batch_dir / "raport-wsadowy.csv").exists()
+
+
+@pytest.mark.asyncio
+async def test_verification_by_regon_flow(tmp_path: Path):
+    """Weryfikuje pełny przepływ sprawdzania firmy po 9-cyfrowym numerze REGON."""
+    db = Database(tmp_path / "regon.db")
+    svc = VerificationService(db=db, audits_dir=tmp_path / "audits")
+
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(url__regex=r"https://wl-api\.mf\.gov\.pl/api/search/regon/012100784.*").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "result": {
+                        "requestId": "mf-req-regon-1",
+                        "subject": {
+                            "name": "ORANGE POLSKA S.A.",
+                            "nip": "5260250995",
+                            "statusVat": "Czynny",
+                            "regon": "012100784",
+                            "krs": "0000010681",
+                            "workingAddress": "Al. Jerozolimskie 160, Warszawa",
+                            "accountNumbers": ["61109010140000071219812874"],
+                        },
+                    }
+                },
+            )
+        )
+        mock.get("https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000010681?rejestr=P&format=json").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "odpis": {
+                        "naglowekA": {"dataRejestracjiWKRS": "2001-05-07"},
+                        "dane": {
+                            "dzial1": {"danePodmiotu": {"nazwa": "ORANGE POLSKA S.A.", "formaPrawna": "SPÓŁKA AKCYJNA", "identyfikatory": {"nip": "5260250995"}}},
+                            "dzial2": {"reprezentacja": {"sklad": []}},
+                            "dzial3": {},
+                            "dzial6": {},
+                        },
+                    }
+                },
+            )
+        )
+        mock.get(url__regex=r"https://dane\.biznes\.gov\.pl/api/ceidg/.*").mock(
+            return_value=httpx.Response(404, json={"firmy": []})
+        )
+        mock.post("https://crbr.podatki.gov.pl/adcrbr/api/pobierzZgloszeniaPoNIP").mock(
+            return_value=httpx.Response(200, json={"beneficjenci": []})
+        )
+
+        card = await svc.verify_company(identifier="012100784", force=True)
+
+    assert card.identifier_kind == "REGON"
+    assert card.regon == "012100784"
+    assert card.nip == "5260250995"
+    assert card.krs == "0000010681"
+    assert card.nazwa == "ORANGE POLSKA S.A."
+    assert card.platnik_vat_czynny is True
+    assert card.mf_request_id == "mf-req-regon-1"
+

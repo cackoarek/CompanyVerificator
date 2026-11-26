@@ -208,6 +208,19 @@ def classify_identifier(raw_identifier: Optional[str], allow_test_nips: bool = F
                 is_valid=True,
             )
 
+    # Jawne wskazanie REGON: np. "REGON 012100784" lub "REGON:012100784"
+    if compact.startswith("REGON:") or compact.startswith("REGON"):
+        regon_candidate = compact.replace("REGON:", "").replace("REGON", "")
+        ok, err = validate_regon(regon_candidate)
+        return IdentifierClassification(
+            raw=raw,
+            normalized=clean_regon(regon_candidate),
+            kind="REGON" if ok else "INVALID",
+            country_code="PL",
+            is_valid=ok,
+            error=err,
+        )
+
     # Sam numer 10-cyfrowy -> domyślnie traktujemy jako polski NIP
     if compact.isdigit() and len(compact) == 10:
         ok, err = validate_nip(compact, allow_test_nips=allow_test_nips)
@@ -220,11 +233,23 @@ def classify_identifier(raw_identifier: Optional[str], allow_test_nips: bool = F
             error=err,
         )
 
+    # Sam numer 9 lub 14-cyfrowy -> traktujemy jako polski REGON
+    if compact.isdigit() and len(compact) in (9, 14):
+        ok, err = validate_regon(compact)
+        return IdentifierClassification(
+            raw=raw,
+            normalized=compact,
+            kind="REGON" if ok else "INVALID",
+            country_code="PL",
+            is_valid=ok,
+            error=err,
+        )
+
     return IdentifierClassification(
         raw=raw,
         normalized=compact,
         kind="INVALID",
         country_code="",
         is_valid=False,
-        error="Nierozpoznany lub nieprawidłowy identyfikator (podaj 10-cyfrowy NIP, KRS:<10 cyfr> lub VAT-UE np. DE123456789)",
+        error="Nierozpoznany lub nieprawidłowy identyfikator (podaj 10-cyfrowy NIP, REGON: 9 lub 14 cyfr, KRS:<10 cyfr> lub VAT-UE np. DE123456789)",
     )

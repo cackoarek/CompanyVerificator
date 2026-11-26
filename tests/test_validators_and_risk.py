@@ -47,6 +47,12 @@ def test_classify_identifier():
     c_krs = classify_identifier("KRS:10203")
     assert c_krs.kind == "KRS" and c_krs.normalized == "0000010203"
 
+    c_regon9 = classify_identifier("012100784")
+    assert c_regon9.kind == "REGON" and c_regon9.is_valid and c_regon9.normalized == "012100784"
+
+    c_regon_pref = classify_identifier("REGON: 012100784")
+    assert c_regon_pref.kind == "REGON" and c_regon_pref.is_valid
+
     c_eu = classify_identifier("DE 123456789")
     assert c_eu.kind == "EU_VAT" and c_eu.country_code == "DE" and c_eu.is_valid
 

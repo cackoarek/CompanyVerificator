@@ -19,7 +19,7 @@ from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
 from src.providers.ceidg_client import fetch_ceidg_info
 from src.providers.crbr_client import compare_krs_and_crbr, fetch_crbr_beneficiaries, matches_masked
 from src.providers.krs_client import fetch_krs_odpis
-from src.providers.mf_white_list import check_mf_bank_account, fetch_mf_white_list
+from src.providers.mf_white_list import check_mf_bank_account, fetch_mf_white_list, fetch_mf_white_list_by_regon
 from src.providers.sanctions.matcher import match_sanctions
 from src.providers.sanctions.sync_service import seed_default_sanctions
 from src.providers.vies_client import check_vies_vat
@@ -187,6 +187,7 @@ class VerificationService:
         nip: Optional[str] = clf_norm if clf_kind == "NIP" else None
         krs: Optional[str] = clf_norm if clf_kind == "KRS" else None
         vat_ue: Optional[str] = clf_norm if clf_kind == "EU_VAT" else None
+        regon_input: Optional[str] = clf_norm if clf_kind == "REGON" else None
 
         mf_data: Dict[str, Any] = {}
         krs_data: Dict[str, Any] = {}
@@ -195,7 +196,27 @@ class VerificationService:
         vies_data: Dict[str, Any] = {}
 
         # Krok 1: Równoległe odpytanie podstawowych rejestrów dla typu identyfikatora
-        if clf_kind == "KRS" and krs:
+        if clf_kind == "REGON" and regon_input:
+            mf_data = await fetch_mf_white_list_by_regon(http_client, regon_input)
+            raw_evidence["mf_white_list"] = mf_data.get("raw") or mf_data
+            if mf_data.get("blad_polaczenia"):
+                niekompletne_zrodla.append("MF Biała Lista (REGON)")
+                komunikaty_bledow.append(mf_data.get("komunikat_bledu", "Błąd MF REGON"))
+            if mf_data.get("nip"):
+                nip = mf_data["nip"]
+            if mf_data.get("krs"):
+                krs = mf_data["krs"]
+
+            # Jeśli z Białej Listy po REGON uzyskaliśmy NIP, sprawdźmy również CEIDG
+            if nip:
+                ceidg_data = await fetch_ceidg_info(http_client, nip)
+                if ceidg_data.get("configured"):
+                    raw_evidence["ceidg"] = ceidg_data.get("raw") or ceidg_data
+                if ceidg_data.get("blad_polaczenia"):
+                    niekompletne_zrodla.append("CEIDG")
+                    komunikaty_bledow.append(ceidg_data.get("komunikat_bledu", "Błąd CEIDG"))
+
+        elif clf_kind == "KRS" and krs:
             krs_data = await fetch_krs_odpis(http_client, krs)
             raw_evidence["krs"] = krs_data.get("raw") or krs_data
             if krs_data.get("blad_polaczenia"):
@@ -211,7 +232,7 @@ class VerificationService:
                 niekompletne_zrodla.append("VIES")
                 komunikaty_bledow.append(vies_data.get("komunikat_bledu", "Błąd VIES"))
 
-        if nip and not is_foreign:
+        if nip and not is_foreign and clf_kind != "REGON":
             mf_data, ceidg_data = await asyncio.gather(
                 fetch_mf_white_list(http_client, nip),
                 fetch_ceidg_info(http_client, nip),
@@ -276,7 +297,7 @@ class VerificationService:
             krs_data.get("regon")
             or mf_data.get("regon")
             or ceidg_data.get("regon")
-            or None
+            or (clf_norm if clf_kind == "REGON" else None)
         )
         kody_pkd = krs_data.get("kody_pkd") or ceidg_data.get("kody_pkd") or []
         pkd_glowny = krs_data.get("pkd_glowny") or ceidg_data.get("pkd_glowny")
