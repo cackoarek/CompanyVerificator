@@ -18,8 +18,9 @@ def render_card_markdown(card: VerificationCard) -> str:
         "BLAD_POLACZENIA": "⚠️ Błąd połączenia z rejestrem",
     }.get(card.status_rejestru, card.status_rejestru)
 
+    has_sanctions = bool(card.sankcje_mswia or card.sankcje_ue or card.sankcje_inne)
     crbr_badge = {
-        "ZGODNY": "✅ Zgodny z rejestrem CRBR",
+        "ZGODNY": "⚠️ Zgłoszony w CRBR (WYKRYTO SANKCJE!)" if has_sanctions else "✅ Zgodny z rejestrem CRBR",
         "BRAK_WPISU": "⚠️ Brak wpisu w CRBR",
         "ROZBIEZNOSCI": "⚠️ Wykryto rozbieżności z KRS",
         "NIE_DOTYCZY": "ℹ️ Nie dotyczy (JDG)",

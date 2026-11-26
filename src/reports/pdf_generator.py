@@ -226,12 +226,18 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
     mswia_txt = '<font color="#DC2626"><b>[✗] WPIS NA LIŚCIE MSWiA</b></font>' if card.sankcje_mswia else '<font color="#15803D">✓ Czysty (MSWiA)</font>'
     ue_txt = '<font color="#DC2626"><b>[✗] WPIS NA LIŚCIE UE</b></font>' if card.sankcje_ue else '<font color="#15803D">✓ Czysty (UE)</font>'
 
+    has_sanctions = bool(card.sankcje_mswia or card.sankcje_ue or card.sankcje_inne)
+    if has_sanctions and card.crbr_status == "ZGODNY":
+        crbr_display_status = '<font color="#DC2626"><b>Zgłoszony w CRBR (WYKRYTO SANKCJE!)</b></font>'
+    else:
+        crbr_display_status = f"<b>{_esc(card.crbr_status)}</b>"
+
     t2 = Table(
         [
             [Paragraph("Rejestr podstawowy:", cell_bold), Paragraph(f"<b>{_esc(card.status_rejestru)}</b> ({_esc(card.zrodlo_rejestru)})", cell_norm)],
             [Paragraph("Reprezentacja (KRS):", cell_bold), Paragraph(_esc(rep_txt), cell_norm)],
             [Paragraph("Wspólnicy (KRS):", cell_bold), Paragraph(_esc(wsp_txt), cell_norm)],
-            [Paragraph("CRBR / UBO:", cell_bold), Paragraph(f"<b>{_esc(card.crbr_status)}</b> • {_esc(ubo_txt)}", cell_norm)],
+            [Paragraph("CRBR / UBO:", cell_bold), Paragraph(f"{crbr_display_status} • {_esc(ubo_txt)}", cell_norm)],
             [Paragraph("Status VAT / VIES:", cell_bold), Paragraph(f"{_esc(card.status_vat)} • MF Request ID: <code>{_esc(card.mf_request_id or 'Brak')}</code>", cell_norm)],
             [Paragraph("Rachunek bankowy:", cell_bold), Paragraph(rach_txt, cell_norm)],
             [Paragraph("Listy sankcyjne:", cell_bold), Paragraph(f"{mswia_txt} &nbsp;|&nbsp; {ue_txt}", cell_norm)],
@@ -253,6 +259,29 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
         )
     )
     elements.extend([t2, Spacer(1, 8)])
+
+    # Sekcja szczegółów sankcji w PDF (jeśli wykryto)
+    if card.sankcje_szczegoly:
+        elements.extend([_section_bar("SZCZEGÓŁY WPISU NA LIŚCIE SANKCYJNEJ (BEZWZGLĘDNY ZAKAZ TRANSAKCJI)", sec_hdr), Spacer(1, 3)])
+        s_rows = [[Paragraph("Trafienie / Podstawa prawna sankcji", cell_bold)]]
+        for s in card.sankcje_szczegoly:
+            s_rows.append([Paragraph(f'<font color="#991B1B"><b>[!]</b></font> {_esc(s)}', cell_norm)])
+        t_sanc = Table(s_rows, colWidths=[525])
+        t_sanc.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FEE2E2")),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#FEF2F2")),
+                    ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#DC2626")),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#FECACA")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
+        elements.extend([t_sanc, Spacer(1, 8)])
 
     # 5. Sekcja 3: Czynniki ryzyka
     if card.risk_factors:
