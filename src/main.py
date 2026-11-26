@@ -33,7 +33,7 @@ from src.core.security import (
     record_failed_login_attempt,
 )
 from src.providers.sanctions.sync_service import seed_default_sanctions
-from src.web.routers import batch, history, sanctions, verify
+from src.web.routers import batch, history, how_it_works, sanctions, verify
 
 
 @asynccontextmanager
@@ -97,7 +97,7 @@ async def optional_token_auth_middleware(request: Request, call_next):
     required_token = os.getenv("CV_ACCESS_TOKEN", "").strip() or ACCESS_TOKEN
 
     path = request.url.path
-    if path.startswith("/static") or path in ("/health", "/favicon.ico", "/login", "/logout"):
+    if path.startswith("/static") or path in ("/health", "/favicon.ico", "/login", "/logout", "/jak-to-dziala"):
         return await call_next(request)
 
     # 1. Sprawdzenie WEB_PASSWORD
@@ -139,6 +139,9 @@ async def optional_token_auth_middleware(request: Request, call_next):
                       <input type="password" name="password" required autofocus placeholder="Wpisz hasło z .env (WEB_PASSWORD)" class="w-full px-3 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                     <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer">Odblokuj panel</button>
+                    <div class="text-center pt-1 border-t border-slate-100">
+                      <a href="/jak-to-dziala" class="text-[11px] text-blue-600 hover:underline">💡 Zobacz jak działa system i ocena ryzyka (bez logowania)</a>
+                    </div>
                     </form></body></html>""",
                     status_code=401,
                     headers={"Cache-Control": "no-store"},
@@ -171,6 +174,9 @@ async def optional_token_auth_middleware(request: Request, call_next):
                       <input type="password" name="password" required autofocus placeholder="Wpisz hasło dostępu" class="w-full px-3 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                     <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer">Odblokuj panel</button>
+                    <div class="text-center pt-1 border-t border-slate-100">
+                      <a href="/jak-to-dziala" class="text-[11px] text-blue-600 hover:underline">💡 Zobacz jak działa system i ocena ryzyka (bez logowania)</a>
+                    </div>
                     </form></body></html>""",
                     status_code=401,
                     headers={"Cache-Control": "no-store"},
@@ -185,6 +191,7 @@ app.include_router(verify.router)
 app.include_router(batch.router)
 app.include_router(history.router)
 app.include_router(sanctions.router)
+app.include_router(how_it_works.router)
 
 
 @app.get("/health")

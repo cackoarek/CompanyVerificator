@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}Jak to działa – Metodologia i Procedura – CompanyVerificator{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-5xl mx-auto">
+
+  <!-- Baner nagłówkowy -->
+  <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 border border-slate-800 shadow-sm">
+    <div class="space-y-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-blue-500/20 text-blue-300 border border-blue-400/30">
+          Kompendium Metodologiczne &amp; AML / VAT
+        </span>
+        <span class="text-xs text-slate-400">• Procedura Należytej Staranności &amp; Ścieżka Audytu SHA-256</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        Jak działa CompanyVerificator?
+      </h1>
+      <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+        System automatyzuje weryfikację podmiotów gospodarczych, beneficjentów rzeczywistych (UBO) oraz rachunków bankowych w oparciu o oficjalne państwowe i unijne rejestry. Niniejszy przewodnik wyjaśnia zasady działania algorytmu, reguły punktacji ryzyka (scoring) oraz postępowanie w sytuacjach szczególnych.
+      </p>
+    </div>
+  </div>
+
+  <!-- Szybka nawigacja po sekcjach -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-semibold">
+    <a href="#etapy" class="bg-white hover:bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-800 flex items-center gap-2 transition-colors shadow-xs">
+      <span class="text-lg">⚙️</span>
+      <span>1. Etapy weryfikacji</span>
+    </a>
+    <a href="#rejestry" class="bg-white hover:bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-800 flex items-center gap-2 transition-colors shadow-xs">
+      <span class="text-lg">🏛️</span>
+      <span>2. Badane rejestry</span>
+    </a>
+    <a href="#scoring" class="bg-white hover:bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-800 flex items-center gap-2 transition-colors shadow-xs">
+      <span class="text-lg">⚖️</span>
+      <span>3. Matryca ryzyka</span>
+    </a>
+    <a href="#scenariusze" class="bg-white hover:bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-800 flex items-center gap-2 transition-colors shadow-xs">
+      <span class="text-lg">🔍</span>
+      <span>4. Scenariusze i wyjątki</span>
+    </a>
+  </div>
+
+  <!-- Sekcja 1: Etapy działania systemu -->
+  <section id="etapy" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 space-y-6">
+    <div class="border-b border-slate-100 pb-4">
+      <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold">1</span>
+        Krok po kroku: Jak przebiega proces weryfikacji?
+      </h2>
+      <p class="text-xs text-slate-500 mt-1">Od wpisania identyfikatora do wygenerowania kryptograficznie zabezpieczonej karty dowodowej.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+      <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+        <div class="flex items-center gap-2 font-bold text-slate-900">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px]">A</span>
+          Klasyfikacja wejścia
+        </div>
+        <p class="text-slate-600 leading-relaxed text-[11px]">
+          System automatycznie rozpoznaje format identyfikatora: <strong>NIP</strong> (weryfikacja wagi i sumy kontrolnej Modulo 11), <strong>KRS</strong> (10 cyfr), <strong>REGON</strong> (9 lub 14 cyfr z sumami wagowymi) lub <strong>VAT-UE</strong> dla podmiotów zagranicznych z UE.
+        </p>
+      </div>
+
+      <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+        <div class="flex items-center gap-2 font-bold text-slate-900">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px]">B</span>
+          Równoległe odpytanie
+        </div>
+        <p class="text-slate-600 leading-relaxed text-[11px]">
+          Asynchroniczne zapytania do oficjalnych API rejestrów państwowych (Biała Lista MF, KRS, CRBR, CEIDG, VIES) oraz synchronizowanej bazy sankcyjnej (MSWiA i UE).
+        </p>
+      </div>
+
+      <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+        <div class="flex items-center gap-2 font-bold text-slate-900">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px]">C</span>
+          Deterministyczny scoring
+        </div>
+        <p class="text-slate-600 leading-relaxed text-[11px]">
+          Regułowy silnik oceny ryzyka przelicza punkty karne (0–100), klasyfikuje poziom ryzyka (Niskie, Średnie, Wysokie, Krytyczne STOP), ustala zalecenie oraz konieczność zastosowania MPP / ZAW-NR.
+        </p>
+      </div>
+
+      <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+        <div class="flex items-center gap-2 font-bold text-slate-900">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px]">D</span>
+          Zabezpieczenie SHA-256
+        </div>
+        <p class="text-slate-600 leading-relaxed text-[11px]">
+          Generowany jest niezmienny hash SHA-256 z pełnej zawartości dowodowej oraz tworzona jest Karta Kontrahenta w formatach JSON, Markdown i PDF A4 z możliwością zapisu w audytowanym archiwum.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sekcja 2: Rejestry i źródła danych -->
+  <section id="rejestry" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 space-y-6">
+    <div class="border-b border-slate-100 pb-4">
+      <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold">2</span>
+        Co dokładnie sprawdza aplikacja w poszczególnych bazach?
+      </h2>
+      <p class="text-xs text-slate-500 mt-1">Każde źródło dostarcza specyficznych danych kluczowych dla procedury Due Diligence.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+      
+      <!-- Biała Lista MF -->
+      <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="text-base">🏛️</span> Biała Lista Podatników VAT (Ministerstwo Finansów)
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-semibold">Kluczowe dla VAT</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          Sprawdza status rejestracji do podatku VAT (Czynny, Zwolniony, Niezarejestrowany/Wykreślony), daty rejestracji i ewentualnego wykreślenia/przywrócenia, a także listę zarejestrowanych rachunków bankowych firmy. Ponadto obsługuje weryfikację subkont i rachunków wirtualnych poprzez mechanizm <code>/check/bank-account/</code> oraz archiwizuje unikalny identyfikator zapytania <code>requestId</code> (dowód dla Urzędu Skarbowego).
+        </p>
+      </div>
+
+      <!-- KRS -->
+      <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="text-base">⚖️</span> Krajowy Rejestr Sądowy (Odpis Aktualny KRS)
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] bg-blue-100 text-blue-800 font-semibold">Spółki prawa handlowego</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          Pobiera pełny odpis aktualny: formę prawną, <strong>datę wpisu do Rejestru Przedsiębiorców</strong>, stan podmiotu (aktywny, likwidacja, upadłość, restrukturyzacja), skład organu zarządzającego (zarząd), prokurentów oraz wspólników spółek z o.o. (z Działu 1 KRS).
+        </p>
+      </div>
+
+      <!-- CRBR -->
+      <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="text-base">👥</span> Centralny Rejestr Beneficjentów Rzeczywistych (CRBR)
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] bg-indigo-100 text-indigo-800 font-semibold">Ustawa AML</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          Weryfikuje obowiązek zgłoszenia beneficjentów rzeczywistych (UBO – osoby fizyczne sprawujące bezpośrednią lub pośrednią kontrolę). Aplikacja porównuje dane KRS z CRBR oraz wykorzystuje jawne imiona, nazwiska i obywatelstwa z CRBR do <strong>automatycznego odkodowywania zanonimizowanych danych wspólników w odpisie KRS</strong>.
+        </p>
+      </div>
+
+      <!-- Sankcje -->
+      <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="text-base">🛑</span> Listy Sankcyjne (MSWiA oraz Unia Europejska)
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] bg-rose-100 text-rose-800 font-semibold">Bezwzględne STOP</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          Baza porównuje nie tylko samą firmę (NIP, nazwa), lecz także <strong>wszystkich członków zarządu, prokurentów, wspólników oraz beneficjentów rzeczywistych UBO</strong> z polską listą MSWiA oraz unijną listą EU FSF. System identyfikuje dokładną <strong>datę umieszczenia na liście sankcyjnej</strong> i podstawę prawną.
+        </p>
+      </div>
+
+      <!-- CEIDG -->
+      <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="text-base">💼</span> Hurtownia Danych CEIDG v2
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-100 text-cyan-800 font-semibold">Jednoosobowe działalności</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          Dla osób fizycznych prowadzących działalność gospodarczą weryfikuje status wpisu (aktywny, zawieszony, wykreślony), datę rozpoczęcia działalności oraz deklarowane kody PKD. W przypadku braku tokena CEIDG aplikacja opiera weryfikację na Białej Liście MF.
+        </p>
+      </div>
+
+      <!-- VIES -->
+      <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="text-base">🇪🇺</span> System VIES (Komisja Europejska)
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-semibold">Podmioty zagraniczne z UE</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          Dla kontrahentów z Unii Europejskiej weryfikuje ważność numeru VAT-UE w czasie rzeczywistym. Aktywny status VIES jest warunkiem koniecznym do bezpiecznego zastosowania stawki 0% VAT w transakcjach wewnątrzwspólnotowych (WDT).
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Sekcja 3: Wycena ryzyka (Scoring) i decyzja -->
+  <section id="scoring" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 space-y-6">
+    <div class="border-b border-slate-100 pb-4">
+      <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold">3</span>
+        Jak wyceniane jest ryzyko? (Wagi punktowe i decyzje)
+      </h2>
+      <p class="text-xs text-slate-500 mt-1">Wycena jest deterministyczna – każde uchybienie lub sygnał ostrzegawczy dodaje punkty karne do puli (0–100).</p>
+    </div>
+
+    <!-- Tabela punktacji -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs text-left">
+        <thead class="bg-slate-100 text-slate-700 uppercase font-semibold text-[10px]">
+          <tr>
+            <th class="py-2.5 px-3">Zdarzenie / Wykryty czynnik</th>
+            <th class="py-2.5 px-3 text-center">Waga punktowa</th>
+            <th class="py-2.5 px-3">Poziom ważności</th>
+            <th class="py-2.5 px-3">Podstawa prawna / Wymóg</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+          <tr class="bg-red-50/60 font-semibold">
+            <td class="py-2.5 px-3 text-red-950">Trafienie na liście sankcyjnej (podmiot, zarząd, wspólnik, UBO)</td>
+            <td class="py-2.5 px-3 text-center font-mono text-red-700 text-sm font-bold">+100 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-red-600 text-white font-bold">KRYTYCZNE STOP</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Ustawa z 13.04.2022 / Rozporządzenia Rady UE</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Podmiot w likwidacji, upadłości lub restrukturyzacji</td>
+            <td class="py-2.5 px-3 text-center font-mono font-bold text-amber-700">+60 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-900 font-bold">WYSOKIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Metodyka należytej staranności MF</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Podmiot wykreślony z rejestru lub brak wpisu w KRS/CEIDG</td>
+            <td class="py-2.5 px-3 text-center font-mono font-bold text-amber-700">+60 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-900 font-bold">WYSOKIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 96b / 86 ustawy o VAT</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Potencjalna zbieżność z listą sankcyjną (niejednoznaczne dane)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-bold text-amber-700">+45 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-900 font-bold">WYSOKIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 34 i 35 ustawy AML</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Numer VAT-UE nieaktywny w systemie VIES (dla firm z UE)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-bold text-amber-700">+40 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-900 font-bold">WYSOKIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 97 / 42 ustawy o VAT (ryzyko utraty stawki 0%)</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Działalność gospodarcza zawieszona</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+35 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Prawo przedsiębiorców</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Rozbieżności między reprezentacją w KRS a danymi w CRBR</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+35 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-900 font-bold">WYSOKIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 61a ustawy AML (odnotowanie rozbieżności)</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Rachunek bankowy poza Białą Listą MF (dla płatności &ge; 15 000 zł)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+35 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 22p PIT / 117ba Ordynacji (odpowiedzialność solidarna)</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Brak zgłoszenia w CRBR (dla spółek zobowiązanych do rejestracji)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+30 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-900 font-bold">WYSOKIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 58-61 ustawy AML</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Brak połączenia z rejestrem podczas badania (weryfikacja niepełna)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+30 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Zasada bezpieczeństwa dowodowego</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Status PEP u osoby w organach lub beneficjenta</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+30 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-900 font-bold">WYSOKIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 46 ustawy AML (wzmożone środki bezpieczeństwa)</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Brak statusu czynnego podatnika VAT (brak lub wykreślenie)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+25 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 88 ust. 3a ustawy o VAT</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Błędna suma kontrolna numeru konta (IBAN)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+25 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Walidacja ISO 7064 Modulo 97-10</td>
+          </tr>
+          <tr class="bg-amber-50/50">
+            <td class="py-2.5 px-3 font-medium text-amber-950">Firma niedawno założona: wpis do rejestru &lt; 2 miesiące (&lt; 60 dni)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-amber-800">+20 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-200 text-amber-900 font-bold">OSTRZEŻENIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Wzmożona czujność – brak historii gospodarczej</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Czynny podatnik VAT bez zarejestrowanych rachunków firmowych w MF</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+20 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 96b ust. 3 pkt 13 ustawy o VAT</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Firma działająca od 2 do 6 miesięcy (60–180 dni)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+15 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Metodyka MF</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Branża wysokiego ryzyka AML/VAT (paliwa, krypto, hazard, nieruchomości)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+15 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Art. 43 ustawy AML / Załącznik 15 VAT</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Poziomy ryzyka i rekomendowane decyzje -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 text-xs">
+      <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50 space-y-1">
+        <div class="font-bold text-emerald-900">NISKIE (0–14 pkt)</div>
+        <div class="text-[11px] text-emerald-700 font-semibold">Decyzja: AKCEPTACJA</div>
+        <p class="text-[10px] text-emerald-800">Brak istotnych ryzyk, podmiot zarejestrowany i w pełni spójny.</p>
+      </div>
+      <div class="p-3 rounded-xl border border-yellow-200 bg-yellow-50 space-y-1">
+        <div class="font-bold text-yellow-900">ŚREDNIE (15–54 pkt)</div>
+        <div class="text-[11px] text-yellow-700 font-semibold">Decyzja: WYMAGA WYJAŚNIENIA</div>
+        <p class="text-[10px] text-yellow-800">Wymaga wzmożonej czujności, weryfikacji konta lub dodatkowych dokumentów.</p>
+      </div>
+      <div class="p-3 rounded-xl border border-amber-200 bg-amber-50 space-y-1">
+        <div class="font-bold text-amber-900">WYSOKIE (&ge;55 pkt)</div>
+        <div class="text-[11px] text-amber-700 font-semibold">Decyzja: WYMAGA WYJAŚNIENIA</div>
+        <p class="text-[10px] text-amber-800">Znaczące nieprawidłowości (brak CRBR, zawieszenie, upadłość, brak VIES).</p>
+      </div>
+      <div class="p-3 rounded-xl border border-red-200 bg-red-50 space-y-1">
+        <div class="font-bold text-red-900">KRYTYCZNE STOP (100 pkt)</div>
+        <div class="text-[11px] text-red-700 font-semibold">Decyzja: ODMOWA WSPÓŁPRACY</div>
+        <p class="text-[10px] text-red-800">Trafienie sankcyjne – bezwzględna blokada transakcji i środków.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sekcja 4: Co dzieje się w jakiej sytuacji? (Scenariusze i przypadki brzegowe) -->
+  <section id="scenariusze" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 space-y-6">
+    <div class="border-b border-slate-100 pb-4">
+      <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold">4</span>
+        Co dzieje się w konkretnej sytuacji? (Scenariusze praktyczne)
+      </h2>
+      <p class="text-xs text-slate-500 mt-1">Przegląd typowych i nietypowych sytuacji napotykanych podczas weryfikacji kontrahentów.</p>
+    </div>
+
+    <div class="space-y-4 text-xs">
+
+      <!-- Sytuacja: Podatnik zwolniony z VAT vs brak VAT -->
+      <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+        <div class="font-bold text-slate-900 flex items-center gap-2">
+          <span class="text-base">🏷️</span> Sytuacja A: Kontrahent nie jest czynnym podatnikiem VAT
+        </div>
+        <div class="text-slate-600 leading-relaxed text-[11px] space-y-1">
+          <p>
+            • <strong>Podatnik zwolniony z VAT</strong> (np. zwolnienie podmiotowe do 200 tys. zł wg art. 113 ust. 1 lub przedmiotowe wg art. 43): 
+            System rozpoznaje klauzulę zwolnienia. <em>Nie nalicza kary punktowej za brak statusu czynnego podatnika VAT</em>, ponieważ wystawianie faktur bez VAT jest w tym przypadku w pełni legalne.
+          </p>
+          <p>
+            • <strong>Podatnik wykreślony lub niezarejestrowany</strong> (bez zwolnienia): 
+            System nalicza <strong>+25 pkt</strong> i kwalifikuje sprawę jako <em>Średnie Ryzyko</em>, przypominając, że nabywcy nie przysługuje prawo do odliczenia podatku naliczonego z faktury wystawionej przez podmiot nieuprawniony (art. 88 ust. 3a ustawy o VAT).
+          </p>
+        </div>
+      </div>
+
+      <!-- Sytuacja: Nowo zarejestrowana firma (< 2 miesiące) -->
+      <div class="p-4 rounded-xl border border-amber-200 bg-amber-50/60 space-y-2">
+        <div class="font-bold text-amber-950 flex items-center gap-2">
+          <span class="text-base">⚠️</span> Sytuacja B: Nowo zarejestrowana firma (wpis do rejestru &lt; 2 miesiące)
+        </div>
+        <p class="text-amber-900 leading-relaxed text-[11px]">
+          Jeżeli data wpisu do Rejestru Przedsiębiorców KRS lub data rozpoczęcia w CEIDG przypada mniej niż 60 dni wstecz od daty badania, system wyświetla <strong>specjalne żółte, pulsujące ostrzeżenie</strong> w panelu oraz w raportach PDF i Markdown. 
+          Naliczane jest <strong>+20 pkt</strong>, a osobie sprawdzającej rekomenduje się: zażądanie potwierdzenia tożsamości reprezentantów, zbadanie realnego zaplecza technicznego oraz referencji, aby wykluczyć tzw. „firmy-słupy” lub spółki celowe zakładane na potrzeby wyłudzeń karuzelowych.
+        </p>
+      </div>
+
+      <!-- Sytuacja: Rachunek bankowy i próg 15 000 zł -->
+      <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+        <div class="font-bold text-slate-900 flex items-center gap-2">
+          <span class="text-base">💳</span> Sytuacja C: Rachunek bankowy poza Białą Listą VAT
+        </div>
+        <div class="text-slate-600 leading-relaxed text-[11px] space-y-1">
+          <p>
+            • <strong>Transakcja powyżej 15 000 PLN (lub brak podanej kwoty):</strong> Płatność na konto niewidniejące w wykazie MF skutkuje brakiem możliwości zaliczenia wydatku do kosztów uzyskania przychodów (KUP) oraz solidarną odpowiedzialnością za zaległości w VAT kontrahenta (art. 117ba Ordynacji podatkowej). System przyznaje <strong>+35 pkt</strong> i rekomenduje: <strong>złożenie zawiadomienia ZAW-NR w ciągu 7 dni</strong> do urzędu skarbowego lub zapłatę w mechanizmie <strong>Split Payment (MPP)</strong>.
+          </p>
+          <p>
+            • <strong>Transakcja poniżej 15 000 PLN:</strong> Sankcje podatkowe Białej Listy nie mają zastosowania. System informuje o statusie konta, ale nie blokuje transakcji.
+          </p>
+          <p>
+            • <strong>Rachunki wirtualne / subkonta masowych płatności:</strong> System nie odrzuca ich automatycznie, lecz odpytuje endpoint <code>/check/bank-account/</code> MF, sprawdzając, czy dane subkonto jest powiązane z głównym rachunkiem rozliczeniowym firmy.
+          </p>
+        </div>
+      </div>
+
+      <!-- Sytuacja: Spółka w KRS a brak CRBR -->
+      <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+        <div class="font-bold text-slate-900 flex items-center gap-2">
+          <span class="text-base">🏢</span> Sytuacja D: Typ firmy a obowiązek zgłoszenia do CRBR
+        </div>
+        <div class="text-slate-600 leading-relaxed text-[11px] space-y-1">
+          <p>
+            • <strong>Spółki handlowe (Sp. z o.o., S.A., Prosta S.A., Spółki Jawne, Komandytowe):</strong> Mają ustawowy obowiązek zgłoszenia beneficjentów rzeczywistych w ciągu 14 dni od rejestracji. Brak wpisu skutkuje naliczeniem <strong>+30 pkt</strong> (Wysokie Ryzyko).
+          </p>
+          <p>
+            • <strong>Jednoosobowe Działalności Gospodarcze (CEIDG):</strong> Osoby fizyczne prowadzące JDG co do zasady nie podlegają rejestracji w CRBR (beneficjentem jest sam przedsiębiorca). Status <code>BRAK_OBOWIAZKU_CRBR</code> nie powoduje doliczenia punktów ryzyka.
+          </p>
+        </div>
+      </div>
+
+      <!-- Sytuacja: Osoba na liście sankcyjnej jako wspólnik lub beneficjent -->
+      <div class="p-4 rounded-xl border border-red-200 bg-red-50/60 space-y-2">
+        <div class="font-bold text-red-950 flex items-center gap-2">
+          <span class="text-base">🛑</span> Sytuacja E: Wspólnik lub beneficjent rzeczywisty na liście sankcyjnej
+        </div>
+        <p class="text-red-900 leading-relaxed text-[11px]">
+          Nawet jeśli sama badana spółka nie widnieje bezpośrednio w wykazie sankcyjnym, obecność sankcjonowanej osoby fizycznej w organach zarządczych, wśród wspólników KRS lub ujawnionych beneficjentów CRBR powoduje <strong>natychmiastowy status KRYTYCZNE STOP (+100 pkt)</strong> oraz bezwzględną odmowę współpracy. Sekcja CRBR zostaje oznaczona czerwonym alertem <code>⚠️ Zgłoszony w CRBR (WYKRYTO SANKCJE!)</code> z podaniem daty wpisu na listę.
+        </p>
+      </div>
+
+      <!-- Sytuacja: Niedostępność rejestrów lub błędy sieciowe -->
+      <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+        <div class="font-bold text-slate-900 flex items-center gap-2">
+          <span class="text-base">🌐</span> Sytuacja F: Awaria lub przerwa techniczna rejestru publicznego (Tryb Offline / Błąd)
+        </div>
+        <p class="text-slate-600 leading-relaxed text-[11px]">
+          Jeśli podczas badania któreś z państwowych API (np. MF w trakcie nocnej przerwy serwisowej) nie odpowiada, system nie zgaduje danych ani nie nadaje fałszywego statusu bezpiecznego. Raport zostaje oznaczony jako <strong>weryfikacja niepełna (+30 pkt)</strong>, a analityk ma zablokowaną możliwość formalnego zatwierdzenia podmiotu do czasu ponowienia badania przywróconego rejestru.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Pasek wezwania do działania -->
+  <div class="bg-slate-100 rounded-2xl p-6 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div>
+      <div class="font-bold text-slate-900 text-sm">Chcesz zweryfikować kontrahenta według tych reguł?</div>
+      <div class="text-xs text-slate-500">Przejdź do formularza sprawdzania pojedynczej firmy lub weryfikacji wsadowej CSV/XLSX.</div>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="/" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-xs transition-colors">
+        🔍 Przejdź do weryfikacji
+      </a>
+      <a href="/rejestry" class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl font-bold text-xs shadow-xs transition-colors">
+        🏛️ Zobacz status baz
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -169,3 +169,29 @@ def test_history_delete_item_and_clear_all(tmp_path: Path, monkeypatch):
     clear_resp = client.post("/historia/wyczysc")
     assert clear_resp.status_code == 200
     assert len(db.list_verifications()) == 0
+
+
+def test_how_it_works_page_publicly_accessible(tmp_path: Path, monkeypatch):
+    """Testuje, czy strona /jak-to-dziala jest dostępna również bez logowania przy aktywnym WEB_PASSWORD."""
+    reset_login_rate_limits()
+    app.state.db = Database(tmp_path / "web_test.db")
+    app.state.audits_dir = tmp_path / "audits"
+    monkeypatch.setenv("WEB_PASSWORD", "sekretne_haslo")
+    monkeypatch.setattr("src.main.WEB_PASSWORD", "sekretne_haslo")
+
+    client = TestClient(app)
+
+    # Strona główna wymaga logowania (401)
+    resp_home = client.get("/", headers={"accept": "text/html"})
+    assert resp_home.status_code == 401
+    assert "Wymagane hasło dostępu" in resp_home.text
+    assert "/jak-to-dziala" in resp_home.text
+
+    # Strona /jak-to-dziala jest dostępna publicznie (200)
+    resp_guide = client.get("/jak-to-dziala")
+    assert resp_guide.status_code == 200
+    assert "Jak działa CompanyVerificator?" in resp_guide.text
+    assert "Biała Lista Podatników VAT" in resp_guide.text
+    assert "Matryca ryzyka" in resp_guide.text
+    assert "Firma niedawno założona" in resp_guide.text
+
