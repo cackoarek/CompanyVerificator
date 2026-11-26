@@ -6,6 +6,10 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.config import PAYMENT_THRESHOLD_PLN
+from src.domain.dictionaries.pkd_catalog import (
+    PkdRiskCategory,
+    evaluate_company_pkd_profile,
+)
 from src.domain.enums import (
     DecyzjaWspolpracy,
     KanalRelacji,
@@ -16,22 +20,19 @@ from src.domain.enums import (
 from src.domain.models import KycScorecard, RiskFactor, SanctionHit
 from src.domain.virtual_office import is_virtual_office_or_mass_address
 
-# 1. Kody PKD wysokiego ryzyka wg Krajowej Oceny Ryzyka GIIF / Załącznika 15 VAT (KOR GIIF Filar 4 - 6 pkt)
-# Paliwa, krypto, złom, odpady, hazard, metale szlachetne, hurt elektroniki
+# Zachowane dla wstecznej kompatybilności referencje do prefiksów
 HIGH_RISK_PKD_PREFIXES = (
     "46.71",  # Sprzedaż hurtowa paliw i produktów pochodnych
     "47.30",  # Sprzedaż detaliczna paliw do pojazdów
-    "64.",    # Finansowa działalność usługowa (w tym giełdy i kantory walut wirtualnych/krypto)
-    "66.",    # Działalność wspomagająca usługi finansowe
-    "92.",    # Działalność związana z grami losowymi i zakładami wzajemnymi (hazard)
-    "38.32",  # Odzysk surowców (złom i surowce wtórne)
+    "46.72",  # Sprzedaż hurtowa metali i rud metali
     "46.77",  # Sprzedaż hurtowa odpadów i złomu
+    "38.32",  # Odzysk surowców (złom i surowce wtórne)
     "24.41",  # Produkcja metali szlachetnych (złoto, srebro, platyna)
     "24.42",  # Produkcja aluminium
-    "46.72",  # Sprzedaż hurtowa metali i rud metali
     "46.51",  # Sprzedaż hurtowa komputerów i oprogramowania (karuzele elektroniki)
     "46.52",  # Sprzedaż hurtowa sprzętu elektronicznego i telekomunikacyjnego
     "26.11",  # Produkcja elementów elektronicznych
+    "92.",    # Hazard
 )
 
 # 2. Kody PKD branż wrażliwych wg KOR GIIF / Załącznika 15 VAT (KOR GIIF Filar 4 - 3 pkt)
@@ -350,25 +351,39 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
             )
         )
 
+    # 9. Profil branżowy PKD (z katalogu PKD i Załącznika 15 VAT)
     if inp.kody_pkd:
-        # Sprawdź czy to nie licencjonowany ubezpieczyciel/instytucja zaufania (PKD 65.x)
-        is_licensed_insurance = any(p.startswith("65.") for p in inp.kody_pkd)
-        matched_pkd = [p for p in inp.kody_pkd if any(p.startswith(pref) for pref in HIGH_RISK_PKD_PREFIXES)]
-        
-        # Jeśli podmiot jest ubezpieczycielem (PKD 65.x), to powiązane PKD finansowe (64.x, 66.x) wynikają z ustawowej działalności ubezpieczeniowej/funduszy
-        if is_licensed_insurance:
-            matched_pkd = [p for p in matched_pkd if not p.startswith("64.") and not p.startswith("66.")]
+        pkd_cat, special_entries, pkd_requires_mpp = evaluate_company_pkd_profile(
+            inp.kody_pkd,
+            forma_prawna=inp.forma_prawna,
+        )
+        if pkd_requires_mpp and not wymagany_mpp and inp.kwota_transakcji and inp.kwota_transakcji >= PAYMENT_THRESHOLD_PLN:
+            wymagany_mpp = True
 
-        if matched_pkd:
+        if pkd_cat == PkdRiskCategory.HIGH_RISK_AML and special_entries:
             score += 15
+            names = [f"{e.code} ({e.name})" for e in special_entries[:2]]
             factors.append(
                 RiskFactor(
                     code="HIGH_RISK_PKD",
-                    title=f"Branża podwyższonego ryzyka AML/VAT (PKD: {', '.join(matched_pkd[:3])})",
+                    title=f"Branża podwyższonego ryzyka AML/VAT: {'; '.join(names)}",
                     severity=PoziomRyzykaAML.SREDNIE,
                     points=15,
-                    legal_basis="Art. 33 i 43 ustawy AML / zał. nr 15 ustawy o VAT",
-                    recommendation="Zastosuj standardową lub wzmożoną weryfikację celu transakcji oraz MPP.",
+                    legal_basis="Art. 33 i 43 ustawy AML / zał. nr 15 ustawy o VAT / KOR GIIF",
+                    recommendation="Zastosuj wzmożoną weryfikację celu transakcji, dokumentacji transportowej / magazynowej oraz MPP.",
+                )
+            )
+        elif pkd_cat == PkdRiskCategory.SENSITIVE_VAT and special_entries:
+            # Informacyjny czynnik dla branż wrażliwych podatkowo
+            names = [f"{e.code} ({e.name})" for e in special_entries[:2]]
+            factors.append(
+                RiskFactor(
+                    code="SENSITIVE_INDUSTRY_VAT",
+                    title=f"Branża wrażliwa podatkowo (Załącznik 15 VAT / KOR GIIF): {'; '.join(names)}",
+                    severity=PoziomRyzykaAML.NISKIE,
+                    points=5,
+                    legal_basis="Załącznik nr 15 do ustawy o VAT / Wytyczne MF",
+                    recommendation="Zachowaj należytą staranność podatkową, zweryfikuj czy transakcja nie podlega pod obowiązkowy mechanizm podzielonej płatności (MPP).",
                 )
             )
 
@@ -500,16 +515,14 @@ def evaluate_kyc_scorecard(inp: RiskEvaluationInput) -> KycScorecard:
         ubo_pts = 0
         ubo_desc = "Przejrzysta struktura właścicielska, beneficjent będący rezydentem PL ujawniony w CRBR"
 
-    # 4. Branża i skala obrotów
-    matched_high = []
-    matched_sensitive = []
+    # 4. Branża i skala obrotów (ocena wg katalogu PKD)
+    pkd_cat = PkdRiskCategory.STANDARD
+    special_entries = []
     if inp.kody_pkd:
-        is_licensed_insurance = any(p.startswith("65.") for p in inp.kody_pkd)
-        matched_high = [p for p in inp.kody_pkd if any(p.startswith(pref) for pref in HIGH_RISK_PKD_PREFIXES)]
-        if is_licensed_insurance:
-            # Działalność ubezpieczeniowa i fundusze pod nadzorem KNF
-            matched_high = [p for p in matched_high if not p.startswith("64.") and not p.startswith("66.")]
-        matched_sensitive = [p for p in inp.kody_pkd if any(p.startswith(pref) for pref in SENSITIVE_PKD_PREFIXES)]
+        pkd_cat, special_entries, _ = evaluate_company_pkd_profile(
+            inp.kody_pkd,
+            forma_prawna=inp.forma_prawna,
+        )
 
     # Flaga kapitału 5 000 zł przy wysokich obrotach (np. transakcja >= 100 000 zł)
     low_capital_high_tx = (
@@ -519,20 +532,25 @@ def evaluate_kyc_scorecard(inp: RiskEvaluationInput) -> KycScorecard:
         and inp.kwota_transakcji >= Decimal("100000")
     )
 
-    if matched_high or low_capital_high_tx:
+    if pkd_cat == PkdRiskCategory.HIGH_RISK_AML or low_capital_high_tx:
         branza_pts = 6
         reasons = []
-        if matched_high:
-            reasons.append(f"Branża wysokiego ryzyka GIIF/VAT (PKD: {', '.join(matched_high[:2])})")
+        if pkd_cat == PkdRiskCategory.HIGH_RISK_AML and special_entries:
+            names = [f"{e.code} ({e.name})" for e in special_entries[:2]]
+            reasons.append(f"Branża wysokiego ryzyka GIIF/VAT ({'; '.join(names)})")
         if low_capital_high_tx:
             reasons.append(f"Wysoka transakcja ({inp.kwota_transakcji:,.2f} zł) przy minimalnym kapitale zakładowym ({inp.kapital_zakladowy} zł)")
-        branza_desc = " | ".join(reasons)
-    elif matched_sensitive:
+        branza_desc = " | ".join(reasons) if reasons else "Branża wysokiego ryzyka AML"
+    elif pkd_cat == PkdRiskCategory.SENSITIVE_VAT:
         branza_pts = 3
-        branza_desc = f"Branża wrażliwa podatkowo (budownictwo, transport, doradztwo, e-commerce; PKD: {', '.join(matched_sensitive[:2])})"
+        names = [f"{e.code} ({e.name})" for e in special_entries[:2]] if special_entries else []
+        branza_desc = f"Branża wrażliwa podatkowo (Załącznik nr 15 VAT / KOR GIIF: {'; '.join(names)})"
+    elif pkd_cat == PkdRiskCategory.REGULATED_KNF_SAFE:
+        branza_pts = 0
+        branza_desc = "Sektor instytucji finansowych i ubezpieczeniowych nadzorowanych przez KNF (zaufanie publiczne)"
     else:
         branza_pts = 0
-        branza_desc = "Standardowa branża o niskim profilu ryzyka operacyjnego (lub sektor regulowany KNF)"
+        branza_desc = "Standardowa branża o niskim profilu ryzyka operacyjnego"
 
     # 5. Kanał nawiązania relacji
     if inp.kanal_relacji == KanalRelacji.SPOTKANIE_OSOBISTE:

@@ -13,6 +13,7 @@ from src.core.database import Database
 from src.core.io import atomic_write_json, atomic_write_text
 from src.core.logging_config import app_logger
 from src.core.validators import classify_identifier, clean_nrb, validate_iban
+from src.domain.dictionaries import evaluate_legal_form
 from src.domain.enums import DecyzjaWspolpracy, KanalRelacji, PoziomRyzykaAML, StatusRachunkuBankowego
 from src.domain.models import VerificationCard
 from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
@@ -347,17 +348,19 @@ class VerificationService:
                         deanonymized_persons.append(full_name)
                     else:
                         wspolnicy.append(f"{name_display}{udzialy_str}" if udzialy_str else name_display)
-            else:
-                wspolnicy = list(krs_data.get("wspolnicy") or [])
-
-            # Jeśli to spółka akcyjna, a CRBR nie ma wpisu - sprawdź czy to spółka publiczna (art. 58 ustawy AML)
-            is_sa = "spółka akcyjna" in (krs_data.get("forma_prawna") or "").lower() or (krs_data.get("kapital_zakladowy") and krs_data.get("kapital_zakladowy") >= 100000)
+            # Precyzyjna ocena formy prawnej i zwolnień z CRBR (art. 58 ustawy AML)
+            legal_eval = evaluate_legal_form(
+                forma_prawna=krs_data.get("forma_prawna"),
+                nazwa=final_nazwa,
+                krs=krs,
+                kapital_zakladowy=float(krs_data.get("kapital_zakladowy") or 0),
+            )
             if crbr_data.get("blad_polaczenia"):
                 crbr_status = "BLAD_POLACZENIA"
             elif crbr_data.get("crbr_status") == "ZGODNY":
                 crbr_status = compare_krs_and_crbr(reprezentacja + wspolnicy + deanonymized_persons, beneficjenci)
-            elif is_sa and crbr_data.get("crbr_status") == "BRAK_WPISU":
-                # Spółki publiczne (notowane na giełdzie) na podstawie art. 58 ustawy AML nie podlegają zgłoszeniu do CRBR
+            elif legal_eval.exempt_from_crbr and crbr_data.get("crbr_status") == "BRAK_WPISU":
+                # Spółki publiczne (GPW) oraz jednostki ustawowo zwolnione
                 crbr_status = "ZWOLNIONY_USTAWOWO_GPW"
             else:
                 crbr_status = crbr_data.get("crbr_status") or "BRAK_WPISU"

@@ -82,6 +82,12 @@ KNOWN_MASS_REGISTRATION_PATTERNS = [
     r"kościuszki\s+103",
 ]
 
+from src.domain.dictionaries.virtual_offices_catalog import (
+    KNOWN_MASS_REGISTRATION_PATTERNS,
+    VIRTUAL_OFFICE_KEYWORDS,
+    detect_virtual_office,
+)
+
 COMPILED_PATTERNS = [re.compile(p, re.IGNORECASE) for p in KNOWN_MASS_REGISTRATION_PATTERNS]
 
 
@@ -90,23 +96,7 @@ def is_virtual_office_or_mass_address(adres: Optional[str]) -> Tuple[bool, Optio
     Sprawdza, czy podany adres wskazuje na wirtualne biuro lub adres masowej rejestracji podmiotów.
     Zwraca: (czy_wykryto, uzasadnienie)
     """
-    if not adres or not adres.strip():
-        return False, None
-
-    normalized = " ".join(adres.lower().replace(",", " ").replace(".", " ").split())
-
-    # 1. Sprawdzenie słów kluczowych
-    for kw in VIRTUAL_OFFICE_KEYWORDS:
-        if kw in normalized:
-            return True, f"Wykryto oznaczenie wirtualnego biura/coworkingu w adresie: '{kw}'"
-
-    # 2. Sprawdzenie znanych lokalizacji masowej rejestracji
-    for pat in COMPILED_PATTERNS:
-        if pat.search(normalized):
-            matched = pat.pattern.replace("\\s+", " ").replace("\\.", ".")
-            return True, f"Adres odpowiada znanej lokalizacji masowej rejestracji podmiotów / wirtualnego biura ({matched})"
-
-    return False, None
+    return detect_virtual_office(adres)
 
 
 def check_address_density_in_db(adres: Optional[str], db_records_count: int) -> Tuple[bool, Optional[str]]:
