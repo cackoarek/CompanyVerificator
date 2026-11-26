@@ -46,8 +46,8 @@
           {% endif %}
         </td>
         <td class="p-3 text-[11px]">
-          <span class="font-semibold">{{ item.decyzja }}</span>
-          <span class="block text-slate-400">{{ item.analyst_status }}</span>
+          <span class="font-semibold">{{ item.decyzja|decyzja_label }}</span>
+          <span class="block text-slate-400">{{ item.analyst_status|analyst_label }}</span>
         </td>
         <td class="p-3 text-right space-x-1 whitespace-nowrap" x-data="{ copiedRow: false }">
           <button type="button"

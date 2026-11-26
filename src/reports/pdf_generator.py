@@ -151,7 +151,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
                 Paragraph(f"{dec_title}<br/>{dec_sub}", cell_norm),
                 Paragraph(
                     f"<b>Ryzyko:</b> {ryzyko_badge} ({card.risk_score}/100 pkt)<br/>"
-                    f"<b>Decyzja analityka:</b> {_esc(card.analyst_status.value)}<br/>"
+                    f"<b>Decyzja analityka:</b> {_esc(card.analyst_status.label)}<br/>"
                     f"<b>System:</b> {_esc(card.osoba_weryfikujaca)}",
                     cell_norm,
                 ),
@@ -447,10 +447,10 @@ def generate_batch_pdf(summary: BatchSummary, output_path: Union[str, Path]) -> 
                 Paragraph(_esc(c.identifier), cell_n),
                 Paragraph(_esc(c.status_rejestru), cell_c),
                 Paragraph(_esc(vat), cell_c),
-                Paragraph(_esc(c.status_rachunku.value), cell_n),
+                Paragraph(_esc(c.status_rachunku.label), cell_n),
                 Paragraph(_esc(sankcje), cell_c),
-                Paragraph(f"{_esc(c.poziom_ryzyka.value)} ({c.risk_score})", cell_c),
-                Paragraph(_esc(c.decyzja.value), cell_c),
+                Paragraph(f"{_esc(c.poziom_ryzyka.label)} ({c.risk_score})", cell_c),
+                Paragraph(_esc(c.decyzja.label), cell_c),
             ]
         )
 

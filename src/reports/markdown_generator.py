@@ -135,7 +135,7 @@ def render_card_markdown(card: VerificationCard) -> str:
             f"* **Wynik punktowy ryzyka:** `{card.risk_score}/100`",
             f"* **Poziom ryzyka:** **{ryzyko_badge}**",
             f"* **Decyzja automatyczna:** **{decyzja_badge}**",
-            f"* **Status analityka:** `{card.analyst_status.value}`",
+            f"* **Status analityka:** **{card.analyst_status.label}**",
             f"* **Uzasadnienie:** {card.uzasadnienie_decyzji}",
         ]
     )
@@ -252,7 +252,7 @@ def render_batch_csv(summary: BatchSummary) -> str:
                 c.risk_score,
                 c.poziom_ryzyka.value,
                 c.decyzja.value,
-                c.analyst_status.value,
+                c.analyst_status.label,
                 "TAK" if c.blad_polaczenia else "NIE",
                 c.sha256_hash,
             ]

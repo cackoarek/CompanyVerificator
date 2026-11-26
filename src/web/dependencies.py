@@ -46,6 +46,38 @@ def format_app_datetime(dt_val: Any, fmt: str = "%Y-%m-%d %H:%M") -> str:
 templates.env.filters["app_dt"] = format_app_datetime
 
 
+def format_analyst_status(status_val: Any) -> str:
+    """Tłumaczy kod statusu analityka na elegancką polską etykietę biznesową."""
+    if not status_val:
+        return ""
+    val = getattr(status_val, "value", str(status_val))
+    labels = {
+        "AUTO": "Weryfikacja automatyczna",
+        "PENDING_EXPLANATION": "Oczekuje na wyjaśnienie",
+        "APPROVED_AFTER_REVIEW": "Zatwierdzono po wyjaśnieniu",
+        "REJECTED": "Odrzucono / Blokada",
+    }
+    return labels.get(val, val)
+
+
+def format_decyzja_label(decyzja_val: Any) -> str:
+    """Tłumaczy kod decyzji compliance na czytelną polską etykietę."""
+    if not decyzja_val:
+        return ""
+    val = getattr(decyzja_val, "value", str(decyzja_val))
+    labels = {
+        "AKCEPTACJA": "Akceptacja",
+        "WYMAGA_WYJASNIENIA": "Wymaga wyjaśnienia",
+        "ODMOWA_WSPOLPRACY_STOP": "Odmowa współpracy (STOP)",
+    }
+    return labels.get(val, val)
+
+
+templates.env.filters["analyst_label"] = format_analyst_status
+templates.env.filters["decyzja_label"] = format_decyzja_label
+
+
+
 
 def get_db(request: Request) -> Database:
     db: Database = getattr(request.app.state, "db", None)

@@ -49,7 +49,7 @@
       {% endif %}
       <div class="flex items-center gap-2">
         <span class="text-[11px] font-mono text-slate-500">
-          Decyzja: <strong>{{ karta.decyzja.value }}</strong> • Analityk: <strong>{{ karta.analyst_status.value }}</strong>
+          Decyzja: <strong>{{ karta.decyzja|decyzja_label }}</strong> • Status: <strong>{{ karta.analyst_status|analyst_label }}</strong>
         </span>
         <button type="button"
                 @click="navigator.clipboard.writeText(window.location.origin + '/karta/{{ karta.id }}'); copiedLink = true; setTimeout(() => copiedLink = false, 2500)"
@@ -483,7 +483,7 @@
     <div class="pt-2 border-t border-slate-100 space-y-1 text-[11px] text-slate-500">
       <div class="font-bold text-slate-600">Dziennik zmian:</div>
       {% for ev in audit_events[:5] %}
-        <div>• <span class="font-mono">{{ ev.created_at|app_dt }}</span> — <strong>{{ ev.actor }}</strong>: {{ ev.action }} → <strong>{{ ev.new_decision }}</strong> {% if ev.note %}({{ ev.note }}){% endif %}</div>
+        <div>• <span class="font-mono">{{ ev.created_at|app_dt }}</span> — <strong>{{ ev.actor }}</strong>: {{ ev.action }} → <strong>{{ ev.new_decision|analyst_label }}</strong> {% if ev.note %}({{ ev.note }}){% endif %}</div>
       {% endfor %}
     </div>
     {% endif %}
