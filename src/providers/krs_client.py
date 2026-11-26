@@ -105,6 +105,15 @@ def parse_krs_odpis(data: Dict[str, Any], krs: str) -> Dict[str, Any]:
         or dzial6.get("postepowanieUkladowe")
     )
 
+    # Wspólnicy (Dział 1)
+    wspolnicy: List[str] = []
+    for wsp_item in (dzial1.get("wspolnicySpzoo") or dzial1.get("wspolnicy") or []):
+        if isinstance(wsp_item, dict):
+            name = _extract_person_name(wsp_item)
+            udzialy = wsp_item.get("posiadaneUdzialy")
+            if name:
+                wspolnicy.append(f"{name} ({udzialy})" if udzialy else name)
+
     return {
         "found": True,
         "krs": clean_krs(krs),
@@ -117,6 +126,7 @@ def parse_krs_odpis(data: Dict[str, Any], krs: str) -> Dict[str, Any]:
         "status_rejestru": "WYKRESLONY" if status_wykreslenia else "AKTYWNY",
         "upadlosc_lub_likwidacja": upadlosc_lub_likwidacja,
         "reprezentacja": reprezentacja,
+        "wspolnicy": wspolnicy,
         "kody_pkd": kody_pkd,
         "pkd_glowny": pkd_glowny,
         "blad_polaczenia": False,

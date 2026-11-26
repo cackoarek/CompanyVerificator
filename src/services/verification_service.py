@@ -285,6 +285,7 @@ class VerificationService:
             zrodlo_rejestru = "VIES (VAT-UE)" if clf_kind == "EU_VAT" else f"Rejestr zagraniczny ({country_code})"
             crbr_status = "NIE_DOTYCZY_ZAGRANICZNA"
             reprezentacja: List[str] = []
+            wspolnicy: List[str] = []
             beneficjenci: List[str] = []
             if vies_data.get("blad_polaczenia"):
                 status_rejestru = "BLAD_POLACZENIA"
@@ -296,11 +297,12 @@ class VerificationService:
             forma_prawna = krs_data.get("forma_prawna") or "SPÓŁKA HANDLOWA (KRS)"
             zrodlo_rejestru = "KRS (api-krs.ms.gov.pl) / Biała Lista MF"
             reprezentacja = list(krs_data.get("reprezentacja") or [])
+            wspolnicy = list(krs_data.get("wspolnicy") or [])
             beneficjenci = list(crbr_data.get("beneficjenci") or [])
             if crbr_data.get("blad_polaczenia"):
                 crbr_status = "BLAD_POLACZENIA"
             elif crbr_data.get("crbr_status") == "ZGODNY":
-                crbr_status = compare_krs_and_crbr(reprezentacja, beneficjenci)
+                crbr_status = compare_krs_and_crbr(reprezentacja + wspolnicy, beneficjenci)
             else:
                 crbr_status = crbr_data.get("crbr_status") or "BRAK_WPISU"
             status_rejestru = krs_data.get("status_rejestru") or ("BLAD_POLACZENIA" if mf_data.get("blad_polaczenia") else "AKTYWNY")
@@ -312,6 +314,7 @@ class VerificationService:
                 else ("Biała Lista MF" if mf_data.get("found") else ("CEIDG / Biała Lista MF" if _ceidg_configured else "Biała Lista MF"))
             )
             reprezentacja = [final_nazwa] if final_nazwa else []
+            wspolnicy = []
             beneficjenci = []
             crbr_status = "NIE_DOTYCZY"
             if ceidg_data.get("found"):
@@ -387,7 +390,7 @@ class VerificationService:
 
         # Krok 4: Listy sankcyjne (MSWiA / UE / baza lokalna)
         sanction_entries = self.db.list_sanction_entries()
-        persons_to_check = list(dict.fromkeys(reprezentacja + beneficjenci))
+        persons_to_check = list(dict.fromkeys(reprezentacja + wspolnicy + beneficjenci))
         sanction_hits = match_sanctions(
             nip=nip,
             krs=krs,
@@ -451,6 +454,7 @@ class VerificationService:
             status_rejestru=status_rejestru,
             zrodlo_rejestru=zrodlo_rejestru,
             reprezentacja=reprezentacja,
+            wspolnicy=wspolnicy,
             upadlosc_lub_likwidacja=upadlosc_lub_likwidacja,
             crbr_status=crbr_status,
             beneficjenci_rzeczywisci=beneficjenci,

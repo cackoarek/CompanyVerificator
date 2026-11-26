@@ -9,6 +9,12 @@ Format wzorowany na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 ## [0.2.0] — 2026-11-26
 
 ### Dodano (Added)
+- **Integracja CRBR (Centralny Rejestr Beneficjentów Rzeczywistych) i wspólników KRS:**
+  - Podłączenie produkcyjnego API Ministerstwa Finansów dla CRBR (`https://crbr.podatki.gov.pl/adcrbr/api/pobierzZgloszeniaPoNIP`) z poprawnym nagłówkiem sesyjnym `Referer`.
+  - Parsowanie beneficjentów rzeczywistych (UBO) wraz z obywatelstwem (np. `IGOR PETROV [Obywatelstwo: ROSJA]`) oraz charakterem uprawnień / wielkością udziałów (np. `wspólnik spółki z o.o.: 42500 PLN`).
+  - Ekstrakcja bezpośrednich wspólników spółek z KRS Dział 1 (`wspolnicySpzoo` / `wspolnicy`) wraz z liczbą i wartością udziałów.
+  - Automatyczne włączenie wspólników z KRS oraz beneficjentów z CRBR do badania list sankcyjnych (MSWiA / UE / baza lokalna).
+  - Prezentacja wspólników i beneficjentów rzeczywistych w karcie wynikowej HTML, raportach Markdown oraz generowanych dokumentach PDF.
 - **Ochrona hasłem strony WWW (`WEB_PASSWORD`):**
   - Obsługa parametru `WEB_PASSWORD` w pliku `.env`. Jeśli parametr jest ustawiony, strona wymaga podania hasła. Gdy brak parametru – aplikacja działa od razu bez ekranu logowania.
   - Zabezpieczenie przed atakami brute-force: po 5 nieudanych próbach logowania z danego adresu IP następuje automatyczna blokada na 5 godzin (parametr `LOGIN_LOCKOUT_HOURS`, domyślnie 5h, kod HTTP 429).

@@ -8,7 +8,12 @@ import httpx
 from src.core.validators import clean_nip
 from src.providers.base import http_request_with_retry
 
-CRBR_API_URL = "https://crbr.podatki.gov.pl/api/crbr/beneficjenci"
+CRBR_API_URL = "https://crbr.podatki.gov.pl/adcrbr/api/pobierzZgloszeniaPoNIP"
+CRBR_HEADERS = {
+    "Content-Type": "application/json",
+    "Referer": "https://crbr.podatki.gov.pl/adcrbr/",
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+}
 
 
 def _normalize_person_tokens(full_name: str) -> set[str]:
@@ -33,10 +38,47 @@ def compare_krs_and_crbr(reprezentacja_krs: List[str], beneficjenci_crbr: List[s
     if not krs_tokens or not crbr_tokens:
         return "ZGODNY"
 
-    # Jeśli żadna osoba z CRBR nie pokrywa się z zarządem/wspólnikami, sygnalizuj do weryfikacji,
-    # choć UBO może być osobą pośrednią (np. właścicielem spółki-matki).
-    # Rozbieżność klasyfikujemy tylko przy braku danych lub pustych nazwiskach; obecność UBO oznacza wpis ZGODNY.
     return "ZGODNY"
+
+
+def _format_beneficiary_entry(item: Dict[str, Any]) -> str:
+    """Formatuje pojedynczy wpis beneficjenta z obiektu CRBR."""
+    imie = (item.get("imie") or item.get("pierwszeImie") or item.get("imiePierwsze") or "").strip()
+    nazwisko = (item.get("nazwisko") or "").strip()
+    full = " ".join(p for p in [imie, nazwisko] if p).strip()
+
+    # Obywatelstwo
+    obyw_list = item.get("obywatelstwo") or []
+    obyw_strs: List[str] = []
+    if isinstance(obyw_list, list):
+        for o in obyw_list:
+            if isinstance(o, dict):
+                obyw_strs.append(o.get("nazwa") or o.get("kodKraju") or "")
+            elif isinstance(o, str):
+                obyw_strs.append(o)
+    obyw_label = f" [Obywatelstwo: {', '.join(filter(None, obyw_strs))}]" if obyw_strs else ""
+
+    # Uprawnienia / rola
+    uprawnienia = item.get("informacjeOUdzialeLubUprawnieniach") or []
+    rola_parts: List[str] = []
+    if isinstance(uprawnienia, list):
+        for u in uprawnienia:
+            if isinstance(u, dict):
+                r_opis = u.get("rodzajWlasnosciOpis") or ""
+                ilosc = u.get("ilosc")
+                jm = u.get("jednostkaMiaryUdzialuOpis") or ""
+                if r_opis and ilosc:
+                    rola_parts.append(f"{r_opis}: {ilosc} {jm}".strip())
+                elif r_opis:
+                    rola_parts.append(r_opis)
+    
+    if not rola_parts:
+        r_legacy = (item.get("charakterUprawnien") or item.get("rola") or "").strip()
+        if r_legacy:
+            rola_parts.append(r_legacy)
+
+    rola_label = f" ({'; '.join(rola_parts)})" if rola_parts else ""
+    return f"{full}{obyw_label}{rola_label}".strip()
 
 
 async def fetch_crbr_beneficiaries(client: httpx.AsyncClient, nip: str) -> Dict[str, Any]:
@@ -54,8 +96,17 @@ async def fetch_crbr_beneficiaries(client: httpx.AsyncClient, nip: str) -> Dict[
             "POST",
             CRBR_API_URL,
             json_body={"nip": normalized_nip},
+            headers=CRBR_HEADERS,
         )
         if resp.status_code == 404:
+            return {
+                "found": False,
+                "crbr_status": "BRAK_WPISU",
+                "beneficjenci": [],
+                "blad_polaczenia": False,
+            }
+        # CRBR zwraca HTTP 400 z komunikatem "Niepoprawny NIP" dla podmiotów niemających zgłoszenia lub JDG
+        if resp.status_code == 400:
             return {
                 "found": False,
                 "crbr_status": "BRAK_WPISU",
@@ -72,17 +123,33 @@ async def fetch_crbr_beneficiaries(client: httpx.AsyncClient, nip: str) -> Dict[
             }
 
         data = resp.json()
-        raw_list = data.get("beneficjenci") or data.get("listaBeneficjentow") or []
         beneficjenci: List[str] = []
-        for item in raw_list:
-            if not isinstance(item, dict):
-                continue
-            imie = (item.get("imie") or item.get("pierwszeImie") or "").strip()
-            nazwisko = (item.get("nazwisko") or "").strip()
-            rola = (item.get("charakterUprawnien") or item.get("rola") or "").strip()
-            full = " ".join(p for p in [imie, nazwisko] if p).strip()
-            if full:
-                beneficjenci.append(f"{full} ({rola})" if rola else full)
+
+        if isinstance(data, list):
+            # Odpowiedź z /adcrbr/api/pobierzZgloszeniaPoNIP to lista zgłoszeń, najświeższe na początku
+            if not data:
+                return {
+                    "found": False,
+                    "crbr_status": "BRAK_WPISU",
+                    "beneficjenci": [],
+                    "blad_polaczenia": False,
+                    "raw": data,
+                }
+            latest = data[0]
+            raw_list = latest.get("listaBeneficjentow") or latest.get("beneficjenci") or []
+            for item in raw_list:
+                if isinstance(item, dict):
+                    formatted = _format_beneficiary_entry(item)
+                    if formatted and formatted not in beneficjenci:
+                        beneficjenci.append(formatted)
+        elif isinstance(data, dict):
+            # Wsparcie dla starszego formatu / mocków testowych
+            raw_list = data.get("beneficjenci") or data.get("listaBeneficjentow") or []
+            for item in raw_list:
+                if isinstance(item, dict):
+                    formatted = _format_beneficiary_entry(item)
+                    if formatted and formatted not in beneficjenci:
+                        beneficjenci.append(formatted)
 
         if not beneficjenci:
             return {

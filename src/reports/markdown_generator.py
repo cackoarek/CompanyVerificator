@@ -83,6 +83,7 @@ def render_card_markdown(card: VerificationCard) -> str:
             "## 2. Wyniki sprawdzenia w rejestrach publicznych",
             f"* **Rejestr ({card.zrodlo_rejestru}):** {rejestr_badge}",
             f"  * **Reprezentacja (KRS / właściciel):** {', '.join(card.reprezentacja) if card.reprezentacja else 'Brak danych'}",
+            f"  * **Wspólnicy (KRS):** {', '.join(card.wspolnicy) if card.wspolnicy else 'Brak danych / nie dotyczy'}",
             f"* **Rejestr Beneficjentów Rzeczywistych (CRBR):** {crbr_badge}",
             f"  * **UBO:** {', '.join(card.beneficjenci_rzeczywisci) if card.beneficjenci_rzeczywisci else 'Brak danych'}",
             f"* **Status VAT:** {card.status_vat}",

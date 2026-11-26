@@ -61,7 +61,7 @@ async def test_verification_service_full_flow_and_pdf(tmp_path: Path):
         mock.get(url__regex=r"https://dane\.biznes\.gov\.pl/api/ceidg/.*").mock(
             return_value=httpx.Response(404, json={"firmy": []})
         )
-        mock.post("https://crbr.podatki.gov.pl/api/crbr/beneficjenci").mock(
+        mock.post("https://crbr.podatki.gov.pl/adcrbr/api/pobierzZgloszeniaPoNIP").mock(
             return_value=httpx.Response(
                 200,
                 json={"beneficjenci": [{"imie": "Anna", "nazwisko": "Nowak", "charakterUprawnien": "akcjonariusz"}]},

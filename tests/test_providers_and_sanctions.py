@@ -94,7 +94,7 @@ async def test_krs_parser_and_crbr_and_ceidg_and_vies():
                 },
             )
         )
-        mock.post("https://crbr.podatki.gov.pl/api/crbr/beneficjenci").mock(
+        mock.post("https://crbr.podatki.gov.pl/adcrbr/api/pobierzZgloszeniaPoNIP").mock(
             return_value=httpx.Response(
                 200,
                 json={"beneficjenci": [{"imie": "Jan", "nazwisko": "Kowalski", "charakterUprawnien": "udziałowiec"}]},

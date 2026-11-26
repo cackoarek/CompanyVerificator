@@ -205,6 +205,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
     elements.extend([_section_bar("2. WYNIKI WERYFIKACJI W REJESTRACH PUBLICZNYCH I SANKCYJNYCH", sec_hdr), Spacer(1, 3)])
 
     rep_txt = ", ".join(card.reprezentacja[:6]) if card.reprezentacja else "Brak danych reprezentacji"
+    wsp_txt = ", ".join(card.wspolnicy[:6]) if card.wspolnicy else ("Brak danych / nie dotyczy" if card.krs else "Nie dotyczy")
     ubo_txt = ", ".join(card.beneficjenci_rzeczywisci[:6]) if card.beneficjenci_rzeczywisci else "Brak wpisu / nie dotyczy"
     if card.status_rachunku == StatusRachunkuBankowego.NIE_PODANO:
         if card.rachunki_zgloszone_mf:
@@ -229,6 +230,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
         [
             [Paragraph("Rejestr podstawowy:", cell_bold), Paragraph(f"<b>{_esc(card.status_rejestru)}</b> ({_esc(card.zrodlo_rejestru)})", cell_norm)],
             [Paragraph("Reprezentacja (KRS):", cell_bold), Paragraph(_esc(rep_txt), cell_norm)],
+            [Paragraph("Wspólnicy (KRS):", cell_bold), Paragraph(_esc(wsp_txt), cell_norm)],
             [Paragraph("CRBR / UBO:", cell_bold), Paragraph(f"<b>{_esc(card.crbr_status)}</b> • {_esc(ubo_txt)}", cell_norm)],
             [Paragraph("Status VAT / VIES:", cell_bold), Paragraph(f"{_esc(card.status_vat)} • MF Request ID: <code>{_esc(card.mf_request_id or 'Brak')}</code>", cell_norm)],
             [Paragraph("Rachunek bankowy:", cell_bold), Paragraph(rach_txt, cell_norm)],

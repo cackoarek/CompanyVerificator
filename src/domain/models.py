@@ -77,6 +77,7 @@ class VerificationCard:
     status_rejestru: str = "AKTYWNY"
     zrodlo_rejestru: str = "Biała Lista MF"
     reprezentacja: List[str] = field(default_factory=list)
+    wspolnicy: List[str] = field(default_factory=list)
     upadlosc_lub_likwidacja: bool = False
 
     # 2. Beneficjenci rzeczywiści (CRBR)
