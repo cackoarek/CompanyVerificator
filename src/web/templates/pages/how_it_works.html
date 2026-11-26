@@ -292,8 +292,14 @@
           <tr class="bg-amber-50/50">
             <td class="py-2.5 px-3 font-medium text-amber-950">Firma niedawno założona: wpis do rejestru &lt; 2 miesiące (&lt; 60 dni)</td>
             <td class="py-2.5 px-3 text-center font-mono font-semibold text-amber-800">+20 pkt</td>
-            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-200 text-amber-900 font-bold">OSTRZEŻENIE</span></td>
+            <td class="py-2.5 px-3"><span class="px-2 py-2.5 rounded text-[10px] bg-amber-200 text-amber-900 font-bold">OSTRZEŻENIE</span></td>
             <td class="py-2.5 px-3 text-slate-600">Wzmożona czujność – brak historii gospodarczej</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Siedziba pod adresem wirtualnego biura lub masowej rejestracji</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+20 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Metodyka MF / Wytyczne GIIF</td>
           </tr>
           <tr>
             <td class="py-2.5 px-3 font-medium">Czynny podatnik VAT bez zarejestrowanych rachunków firmowych w MF</td>
@@ -308,13 +314,138 @@
             <td class="py-2.5 px-3 text-slate-600">Metodyka MF</td>
           </tr>
           <tr>
-            <td class="py-2.5 px-3 font-medium">Branża wysokiego ryzyka AML/VAT (paliwa, krypto, hazard, nieruchomości)</td>
+            <td class="py-2.5 px-3 font-medium">Branża wysokiego ryzyka AML/VAT (paliwa, krypto, hazard, odpady, złom)</td>
             <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+15 pkt</td>
             <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
             <td class="py-2.5 px-3 text-slate-600">Art. 43 ustawy AML / Załącznik 15 VAT</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Moduł KYC: Wytyczne GIIF i Krajowa Ocena Ryzyka (KOR) -->
+    <div class="border border-indigo-200 bg-indigo-50/40 rounded-xl p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="font-bold text-indigo-950 flex items-center gap-2 text-sm">
+          <span>📋</span>
+          <span>Ocena Ryzyka Klienta KYC (Standard GIIF &amp; Krajowa Ocena Ryzyka)</span>
+        </div>
+        <span class="px-2.5 py-0.5 rounded text-[10px] bg-indigo-600 text-white font-bold uppercase tracking-wider">Skala 0–25 pkt GIIF</span>
+      </div>
+      <p class="text-slate-600 text-[11px] leading-relaxed">
+        Dla instytucji obowiązanych aplikacja generuje równoległą <strong>Kartę Oceny Ryzyka Klienta KYC</strong> zgodną z wytycznymi Generalnego Inspektora Informacji Finansowej (GIIF) opartą na 5 filarach:
+      </p>
+      <div class="overflow-x-auto bg-white rounded-lg border border-indigo-100">
+        <table class="w-full text-[11px] text-left">
+          <thead class="bg-indigo-100/70 text-indigo-900 uppercase font-semibold text-[10px]">
+            <tr>
+              <th class="py-2 px-3">Filar oceny</th>
+              <th class="py-2 px-3">Kryterium / Wariant</th>
+              <th class="py-2 px-3 text-center">Pkt</th>
+              <th class="py-2 px-3">Uzasadnienie (GIIF / KOR)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="py-2 px-3 font-bold" rowspan="3">1. Staż rynkowy</td>
+              <td class="py-1.5 px-3">&gt; 24 miesięcy</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-emerald-700">0</td>
+              <td class="py-1.5 px-3 text-slate-600">Stabilna i udokumentowana historia gospodarcza</td>
+            </tr>
+            <tr>
+              <td class="py-1.5 px-3">6 do 24 miesięcy</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-amber-700">2</td>
+              <td class="py-1.5 px-3 text-slate-600">Ograniczona historia, wymagany standardowy monitoring</td>
+            </tr>
+            <tr class="bg-amber-50/40">
+              <td class="py-1.5 px-3">&lt; 6 miesięcy lub spółka typu shelf company</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-red-700">5</td>
+              <td class="py-1.5 px-3 text-slate-600">Brak historii operacyjnej; wysokie ryzyko wykorzystania jako tzw. „słupa”</td>
+            </tr>
+
+            <tr>
+              <td class="py-2 px-3 font-bold" rowspan="3">2. Siedziba i zaplecze</td>
+              <td class="py-1.5 px-3">Własny lokal lub standardowy najem komercyjny</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-emerald-700">0</td>
+              <td class="py-1.5 px-3 text-slate-600">Łatwa weryfikacja faktycznego miejsca zarządu i kontroli dokumentów</td>
+            </tr>
+            <tr>
+              <td class="py-1.5 px-3">Adres prywatny (mieszkanie) przy mikro/JDG</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-slate-700">1</td>
+              <td class="py-1.5 px-3 text-slate-600">Naturalne dla mikroprzedsiębiorców i usług IT</td>
+            </tr>
+            <tr class="bg-amber-50/40">
+              <td class="py-1.5 px-3">Wirtualne biuro / adres masowy / coworking</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-red-700">4</td>
+              <td class="py-1.5 px-3 text-slate-600">Utrudnione ustalenie miejsca zarządu (klasyczny wskaźnik red flag)</td>
+            </tr>
+
+            <tr>
+              <td class="py-2 px-3 font-bold" rowspan="3">3. Struktura i UBO</td>
+              <td class="py-1.5 px-3">Prosta struktura, rezydent PL bezpośrednio w zarządzie</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-emerald-700">0</td>
+              <td class="py-1.5 px-3 text-slate-600">Pełna przejrzystość właścicielska i łatwa identyfikacja w CRBR</td>
+            </tr>
+            <tr>
+              <td class="py-1.5 px-3">Rozbudowana struktura lub rozbieżności CRBR</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-amber-700">3</td>
+              <td class="py-1.5 px-3 text-slate-600">Wymaga dodatkowej weryfikacji i ew. zgłoszenia rozbieżności do organu</td>
+            </tr>
+            <tr class="bg-amber-50/40">
+              <td class="py-1.5 px-3">Podmioty zagraniczne w strukturze / nierezydent w UBO</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-red-700">6</td>
+              <td class="py-1.5 px-3 text-slate-600">Zwiększone ryzyko ukrycia beneficjenta rzeczywistego</td>
+            </tr>
+
+            <tr>
+              <td class="py-2 px-3 font-bold" rowspan="3">4. Branża i kapitał</td>
+              <td class="py-1.5 px-3">Branża o niskim profilu ryzyka</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-emerald-700">0</td>
+              <td class="py-1.5 px-3 text-slate-600">Brak odchyleń od norm rynkowych</td>
+            </tr>
+            <tr>
+              <td class="py-1.5 px-3">Branża wrażliwa (budowlanka, transport, doradztwo, e-commerce)</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-amber-700">3</td>
+              <td class="py-1.5 px-3 text-slate-600">Zwiększona podatność na puste faktury i karuzele VAT</td>
+            </tr>
+            <tr class="bg-amber-50/40">
+              <td class="py-1.5 px-3">Branża wysokiego ryzyka (krypto, paliwa, złom) LUB kapitał 5 000 zł przy wysokiej transakcji</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-red-700">6</td>
+              <td class="py-1.5 px-3 text-slate-600">Wskaźnik (red flag) prania pieniędzy lub wyłudzeń skarbowych</td>
+            </tr>
+
+            <tr>
+              <td class="py-2 px-3 font-bold" rowspan="2">5. Kanał relacji</td>
+              <td class="py-1.5 px-3">Spotkanie osobiste z weryfikacją tożsamości</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-emerald-700">0</td>
+              <td class="py-1.5 px-3 text-slate-600">Bezpośrednia weryfikacja reprezentacji i dokumentów tożsamości</td>
+            </tr>
+            <tr>
+              <td class="py-1.5 px-3">Zdalnie (online / korespondencyjnie)</td>
+              <td class="py-1.5 px-3 text-center font-mono font-bold text-amber-700">3</td>
+              <td class="py-1.5 px-3 text-slate-600">Zwiększone ryzyko kradzieży tożsamości (art. 43 ust. 2 pkt 3 ustawy AML)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[10px]">
+        <div class="p-2 bg-emerald-50 border border-emerald-200 rounded">
+          <div class="font-bold text-emerald-900">0–4 pkt: NISKIE</div>
+          <div class="text-emerald-700">Uproszczone środki (SDD)</div>
+        </div>
+        <div class="p-2 bg-blue-50 border border-blue-200 rounded">
+          <div class="font-bold text-blue-900">5–9 pkt: STANDARDOWE</div>
+          <div class="text-blue-700">Standardowe środki (CDD)</div>
+        </div>
+        <div class="p-2 bg-amber-50 border border-amber-200 rounded">
+          <div class="font-bold text-amber-900">10–14 pkt: PODWYŻSZONE</div>
+          <div class="text-amber-700">Wzmożone środki (EDD)</div>
+        </div>
+        <div class="p-2 bg-red-50 border border-red-200 rounded">
+          <div class="font-bold text-red-900">&ge; 15 pkt: NIEAKCEPTOWALNE</div>
+          <div class="text-red-700">Zgoda zarządu / Blokada</div>
+        </div>
+      </div>
     </div>
 
     <!-- Poziomy ryzyka i rekomendowane decyzje -->

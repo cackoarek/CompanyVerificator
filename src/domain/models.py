@@ -8,9 +8,59 @@ from typing import Any, Dict, List, Optional
 from src.domain.enums import (
     AnalystStatus,
     DecyzjaWspolpracy,
+    KanalRelacji,
     PoziomRyzykaAML,
+    ProfilRyzykaKyc,
     StatusRachunkuBankowego,
 )
+
+
+@dataclass
+class KycScorecard:
+    """Karta punktacji czynników ryzyka klienta (KYC) zgodna z wytycznymi GIIF i Krajowej Oceny Ryzyka."""
+
+    staz_punkty: int = 0
+    staz_opis: str = ""
+
+    siedziba_punkty: int = 0
+    siedziba_opis: str = ""
+
+    ubo_punkty: int = 0
+    ubo_opis: str = ""
+
+    branza_punkty: int = 0
+    branza_opis: str = ""
+
+    kanal_punkty: int = 0
+    kanal_opis: str = ""
+
+    suma_punktow: int = 0
+    profil_ryzyka: ProfilRyzykaKyc = ProfilRyzykaKyc.NISKIE
+    podsumowanie: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "staz_punkty": self.staz_punkty,
+            "staz_opis": self.staz_opis,
+            "siedziba_punkty": self.siedziba_punkty,
+            "siedziba_opis": self.siedziba_opis,
+            "ubo_punkty": self.ubo_punkty,
+            "ubo_opis": self.ubo_opis,
+            "branza_punkty": self.branza_punkty,
+            "branza_opis": self.branza_opis,
+            "kanal_punkty": self.kanal_punkty,
+            "kanal_opis": self.kanal_opis,
+            "suma_punktow": self.suma_punktow,
+            "profil_ryzyka": self.profil_ryzyka.value,
+            "podsumowanie": self.podsumowanie,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "KycScorecard":
+        payload = dict(data)
+        if "profil_ryzyka" in payload:
+            payload["profil_ryzyka"] = ProfilRyzykaKyc(payload["profil_ryzyka"])
+        return cls(**payload)
 
 
 @dataclass
@@ -105,6 +155,8 @@ class VerificationCard:
 
     # 5. Ocena ryzyka i decyzja
     status_pep: bool = False
+    kanal_relacji: KanalRelacji = KanalRelacji.ZDALNIE
+    kyc_scorecard: Optional[KycScorecard] = None
     risk_score: int = 0
     risk_factors: List[RiskFactor] = field(default_factory=list)
     poziom_ryzyka: PoziomRyzykaAML = PoziomRyzykaAML.NISKIE
@@ -145,6 +197,8 @@ class VerificationCard:
         data["decyzja"] = self.decyzja.value
         data["status_rachunku"] = self.status_rachunku.value
         data["analyst_status"] = self.analyst_status.value
+        data["kanal_relacji"] = self.kanal_relacji.value if isinstance(self.kanal_relacji, KanalRelacji) else str(self.kanal_relacji)
+        data["kyc_scorecard"] = self.kyc_scorecard.to_dict() if self.kyc_scorecard else None
         data["risk_factors"] = [rf.to_dict() for rf in self.risk_factors]
         data["sankcje_trafienia"] = [sh.to_dict() for sh in self.sankcje_trafienia]
         return data
@@ -158,6 +212,13 @@ class VerificationCard:
             payload.get("status_rachunku", StatusRachunkuBankowego.NIE_PODANO.value)
         )
         payload["analyst_status"] = AnalystStatus(payload.get("analyst_status", AnalystStatus.AUTO.value))
+        if "kanal_relacji" in payload:
+            try:
+                payload["kanal_relacji"] = KanalRelacji(payload["kanal_relacji"])
+            except ValueError:
+                payload["kanal_relacji"] = KanalRelacji.ZDALNIE
+        if payload.get("kyc_scorecard"):
+            payload["kyc_scorecard"] = KycScorecard.from_dict(payload["kyc_scorecard"])
         payload["risk_factors"] = [
             RiskFactor(
                 code=rf["code"],

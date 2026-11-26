@@ -320,6 +320,33 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
         )
         elements.extend([t3, Spacer(1, 8)])
 
+    # 5a. Sekcja 3a: Profil Ryzyka Klienta KYC (Wytyczne GIIF & Krajowa Ocena Ryzyka)
+    if card.kyc_scorecard:
+        elements.extend([_section_bar(f"3a. PROFIL RYZYKA KLIENTA KYC (GIIF: {card.kyc_scorecard.suma_punktow}/25 PKT • {card.kyc_scorecard.profil_ryzyka.value})", sec_hdr), Spacer(1, 3)])
+        kyc_rows = [
+            [Paragraph("Filar oceny ryzyka KYC", cell_bold), Paragraph("Pkt", cell_bold), Paragraph("Kryterium i uzasadnienie (KOR / GIIF)", cell_bold)],
+            [Paragraph("1. Staż rynkowy", cell_norm), Paragraph(f"<b>{card.kyc_scorecard.staz_punkty}</b>", cell_norm), Paragraph(_esc(card.kyc_scorecard.staz_opis), cell_norm)],
+            [Paragraph("2. Siedziba i zaplecze", cell_norm), Paragraph(f"<b>{card.kyc_scorecard.siedziba_punkty}</b>", cell_norm), Paragraph(_esc(card.kyc_scorecard.siedziba_opis), cell_norm)],
+            [Paragraph("3. Struktura i UBO", cell_norm), Paragraph(f"<b>{card.kyc_scorecard.ubo_punkty}</b>", cell_norm), Paragraph(_esc(card.kyc_scorecard.ubo_opis), cell_norm)],
+            [Paragraph("4. Branża i kapitał", cell_norm), Paragraph(f"<b>{card.kyc_scorecard.branza_punkty}</b>", cell_norm), Paragraph(_esc(card.kyc_scorecard.branza_opis), cell_norm)],
+            [Paragraph("5. Kanał relacji", cell_norm), Paragraph(f"<b>{card.kyc_scorecard.kanal_punkty}</b>", cell_norm), Paragraph(_esc(card.kyc_scorecard.kanal_opis), cell_norm)],
+        ]
+        t_kyc = Table(kyc_rows, colWidths=[130, 30, 365])
+        t_kyc.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E0E7FF")),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#C7D2FE")),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E0E7FF")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 2.5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
+        elements.extend([t_kyc, Spacer(1, 8)])
+
     # 6. Pieczęć SHA-256
     audit_seal = Table(
         [

@@ -13,7 +13,7 @@ from src.core.database import Database
 from src.core.io import atomic_write_json, atomic_write_text
 from src.core.logging_config import app_logger
 from src.core.validators import classify_identifier, clean_nrb, validate_iban
-from src.domain.enums import DecyzjaWspolpracy, PoziomRyzykaAML, StatusRachunkuBankowego
+from src.domain.enums import DecyzjaWspolpracy, KanalRelacji, PoziomRyzykaAML, StatusRachunkuBankowego
 from src.domain.models import VerificationCard
 from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
 from src.providers.ceidg_client import fetch_ceidg_info
@@ -56,6 +56,7 @@ class VerificationService:
         rachunek_bankowy: Optional[str] = None,
         kwota_transakcji: Optional[Decimal] = None,
         status_pep: bool = False,
+        kanal_relacji: KanalRelacji = KanalRelacji.ZDALNIE,
         force: bool = False,
         batch_id: Optional[str] = None,
         client_ip: Optional[str] = None,
@@ -63,7 +64,7 @@ class VerificationService:
         client: Optional[httpx.AsyncClient] = None,
     ) -> VerificationCard:
         """Przeprowadza pełną, deterministyczną procedurę należytej staranności."""
-        app_logger.info(f"Rozpoczęcie weryfikacji podmiotu: {identifier} (IP: {client_ip or 'nieznane'}, force={force}, rachunek={rachunek_bankowy is not None})")
+        app_logger.info(f"Rozpoczęcie weryfikacji podmiotu: {identifier} (IP: {client_ip or 'nieznane'}, force={force}, rachunek={rachunek_bankowy is not None}, kanał={kanal_relacji.value})")
         clf = classify_identifier(identifier, allow_test_nips=allow_test_nips)
 
         if not clf.is_valid:
@@ -104,6 +105,7 @@ class VerificationService:
                 rachunek_bankowy=rachunek_bankowy,
                 kwota_transakcji=kwota_transakcji,
                 status_pep=status_pep,
+                kanal_relacji=kanal_relacji,
                 batch_id=batch_id,
             )
         except Exception as exc:
@@ -174,6 +176,7 @@ class VerificationService:
         rachunek_bankowy: Optional[str],
         kwota_transakcji: Optional[Decimal],
         status_pep: bool,
+        kanal_relacji: KanalRelacji = KanalRelacji.ZDALNIE,
         batch_id: Optional[str],
     ) -> VerificationCard:
         raw_evidence: Dict[str, Any] = {}
@@ -442,8 +445,11 @@ class VerificationService:
 
         blad_polaczenia = len(niekompletne_zrodla) > 0
 
-        # Krok 5: Deterministyczna ocena ryzyka
-        risk_score, risk_factors, poziom_ryzyka, decyzja, uzasadnienie, wymagany_mpp = evaluate_risk(
+        # Liczba wystąpień adresu w bazie danych (zagęszczenie)
+        address_count = self.db.count_address_verifications(final_adres) if final_adres else 0
+
+        # Krok 5: Deterministyczna ocena ryzyka (w tym moduł KYC GIIF)
+        risk_score, risk_factors, poziom_ryzyka, decyzja, uzasadnienie, wymagany_mpp, kyc_scorecard = evaluate_risk(
             RiskEvaluationInput(
                 is_foreign=is_foreign,
                 status_rejestru=status_rejestru,
@@ -463,6 +469,13 @@ class VerificationService:
                 kody_pkd=kody_pkd,
                 iban_invalid=iban_invalid,
                 rachunki_mf=konta_mf,
+                adres=final_adres,
+                forma_prawna=forma_prawna,
+                kapital_zakladowy=krs_data.get("kapital_zakladowy"),
+                beneficjenci=crbr_data.get("beneficjenci") or [],
+                reprezentacja=reprezentacja,
+                kanal_relacji=kanal_relacji,
+                address_occurrences_in_db=address_count,
             )
         )
 
@@ -503,6 +516,8 @@ class VerificationService:
             wymagany_mpp=wymagany_mpp,
             mf_request_id=mf_request_id,
             status_pep=status_pep,
+            kanal_relacji=kanal_relacji,
+            kyc_scorecard=kyc_scorecard,
             risk_score=risk_score,
             risk_factors=risk_factors,
             poziom_ryzyka=poziom_ryzyka,

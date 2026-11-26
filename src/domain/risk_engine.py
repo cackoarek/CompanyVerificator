@@ -3,20 +3,49 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from src.config import PAYMENT_THRESHOLD_PLN
-from src.domain.enums import DecyzjaWspolpracy, PoziomRyzykaAML, StatusRachunkuBankowego
-from src.domain.models import RiskFactor, SanctionHit
+from src.domain.enums import (
+    DecyzjaWspolpracy,
+    KanalRelacji,
+    PoziomRyzykaAML,
+    ProfilRyzykaKyc,
+    StatusRachunkuBankowego,
+)
+from src.domain.models import KycScorecard, RiskFactor, SanctionHit
+from src.domain.virtual_office import is_virtual_office_or_mass_address
 
-# Wybrane kody PKD wymagające wzmożonej uwagi AML (finanse, krypto, nieruchomości, obrót metalami/paliwami, hazard)
+# 1. Kody PKD wysokiego ryzyka wg Krajowej Oceny Ryzyka GIIF / Załącznika 15 VAT (KOR GIIF Filar 4 - 6 pkt)
+# Paliwa, krypto, złom, odpady, hazard, metale szlachetne, hurt elektroniki
 HIGH_RISK_PKD_PREFIXES = (
-    "46.71",  # Sprzedaż hurtowa paliw
-    "47.30",  # Sprzedaż detaliczna paliw
-    "64.",    # Finansowa działalność usługowa
+    "46.71",  # Sprzedaż hurtowa paliw i produktów pochodnych
+    "47.30",  # Sprzedaż detaliczna paliw do pojazdów
+    "64.",    # Finansowa działalność usługowa (w tym giełdy i kantory walut wirtualnych/krypto)
     "66.",    # Działalność wspomagająca usługi finansowe
+    "92.",    # Działalność związana z grami losowymi i zakładami wzajemnymi (hazard)
+    "38.32",  # Odzysk surowców (złom i surowce wtórne)
+    "46.77",  # Sprzedaż hurtowa odpadów i złomu
+    "24.41",  # Produkcja metali szlachetnych (złoto, srebro, platyna)
+    "24.42",  # Produkcja aluminium
+    "46.72",  # Sprzedaż hurtowa metali i rud metali
+    "46.51",  # Sprzedaż hurtowa komputerów i oprogramowania (karuzele elektroniki)
+    "46.52",  # Sprzedaż hurtowa sprzętu elektronicznego i telekomunikacyjnego
+    "26.11",  # Produkcja elementów elektronicznych
+)
+
+# 2. Kody PKD branż wrażliwych wg KOR GIIF / Załącznika 15 VAT (KOR GIIF Filar 4 - 3 pkt)
+# Budownictwo, transport, spedycja, doradztwo niematerialne, e-commerce
+SENSITIVE_PKD_PREFIXES = (
+    "41.",    # Budownictwo budynków
+    "42.",    # Budownictwo obiektów inżynierii lądowej i wodnej
+    "43.",    # Roboty budowlane specjalistyczne (podwykonawstwo)
+    "49.41",  # Transport drogowy towarów
+    "52.29",  # Działalność pozostałych agencji transportowych (spedycja)
+    "70.22",  # Doradztwo w zakresie prowadzenia działalności (usługi niematerialne)
+    "73.11",  # Działalność agencji reklamowych (puste faktury marketingowe)
+    "47.91",  # Sprzedaż detaliczna prowadzona przez domy sprzedaży wysyłkowej lub Internet (e-commerce)
     "68.",    # Obsługa rynku nieruchomości
-    "92.",    # Działalność związana z grami losowymi i zakładami wzajemnymi
 )
 
 
@@ -42,6 +71,13 @@ class RiskEvaluationInput:
     kody_pkd: Optional[List[str]] = None
     iban_invalid: bool = False
     rachunki_mf: Optional[List[str]] = None
+    adres: Optional[str] = None
+    forma_prawna: Optional[str] = None
+    kapital_zakladowy: Optional[Decimal] = None
+    beneficjenci: Optional[List[Dict[str, Any]]] = None
+    reprezentacja: Optional[List[str]] = None
+    kanal_relacji: KanalRelacji = KanalRelacji.ZDALNIE
+    address_occurrences_in_db: int = 1
 
 
 def get_entity_age_days(data_str: Optional[str]) -> Optional[int]:
@@ -321,6 +357,22 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
                 )
             )
 
+    # Sprawdzenie wirtualnego biura / adresu masowego
+    if inp.adres:
+        is_vo, vo_reason = is_virtual_office_or_mass_address(inp.adres)
+        if is_vo:
+            score += 20
+            factors.append(
+                RiskFactor(
+                    code="VIRTUAL_OFFICE_MASS_ADDRESS",
+                    title=f"Wirtualne biuro / adres masowej rejestracji: {vo_reason}",
+                    severity=PoziomRyzykaAML.SREDNIE,
+                    points=20,
+                    legal_basis="Metodyka MF należytej staranności VAT / Wytyczne GIIF w zakresie wirtualnych biur",
+                    recommendation="Zweryfikuj faktyczne miejsce zarządu i prowadzenia księgowości oraz dostępność osób uprawnionych pod podanym adresem.",
+                )
+            )
+
     # Wyznaczenie końcowego poziomu ryzyka i decyzji
     if exact_or_high_sanctions:
         poziom = PoziomRyzykaAML.KRYTYCZNE_STOP
@@ -354,4 +406,148 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
             "status podatkowy i rachunek bankowy nie wykazują nieprawidłowości."
         )
 
-    return min(score, 100), factors, poziom, decyzja, uzasadnienie, wymagany_mpp
+    # Obliczenie punktacji KYC wg GIIF/KOR
+    kyc_scorecard = evaluate_kyc_scorecard(inp)
+
+    return min(score, 100), factors, poziom, decyzja, uzasadnienie, wymagany_mpp, kyc_scorecard
+
+
+def evaluate_kyc_scorecard(inp: RiskEvaluationInput) -> KycScorecard:
+    """
+    Wylicza punktację profilu ryzyka klienta KYC (0–25 pkt) zgodnie z wytycznymi GIIF i Krajowej Oceny Ryzyka:
+    1. Staż rynkowy (0, 2 lub 5 pkt)
+    2. Siedziba i zaplecze (0, 1 lub 4 pkt)
+    3. Struktura i beneficjent UBO (0, 3 lub 6 pkt)
+    4. Branża i kapitał zakładowy (0, 3 lub 6 pkt)
+    5. Kanał nawiązania relacji (0 lub 3 pkt)
+    """
+    # 1. Staż rynkowy
+    effective_date = inp.data_wpisu_rejestru or inp.data_rozpoczecia
+    days = get_entity_age_days(effective_date)
+    if days is not None and days < 180:
+        staz_pts = 5
+        staz_desc = f"Poniżej 6 miesięcy ({days} dni, od {effective_date}) – wysokie ryzyko spółki typu shelf company lub 'słupa'"
+    elif days is not None and 180 <= days < 730:
+        staz_pts = 2
+        staz_desc = f"Od 6 do 24 miesięcy ({days} dni) – ograniczona historia, standardowy monitoring"
+    elif days is not None and days >= 730:
+        staz_pts = 0
+        staz_desc = f"Powyżej 24 miesięcy ({days} dni, od {effective_date}) – stabilna historia gospodarcza"
+    else:
+        staz_pts = 2
+        staz_desc = "Brak jednoznacznej daty rejestracji – monitoring standardowy"
+
+    # 2. Siedziba i zaplecze
+    if inp.adres:
+        is_vo, vo_reason = is_virtual_office_or_mass_address(inp.adres)
+        if is_vo or inp.address_occurrences_in_db >= 5:
+            siedziba_pts = 4
+            siedziba_desc = f"Wirtualne biuro / adres masowy ({vo_reason or 'zagęszczenie podmiotów w bazie'})"
+        elif any(kw in inp.adres.lower() for kw in ("m.", "lok.", "mieszkania", "/")):
+            # Adres z numerem lokalu o charakterze prywatnym lub małego biura
+            is_jdg = "jednoosobowa" in (inp.forma_prawna or "").lower() or inp.crbr_status == "NIE_DOTYCZY"
+            siedziba_pts = 1 if is_jdg else 0
+            siedziba_desc = "Adres prywatny / mieszkaniowy (naturalny dla mikroprzedsiębiorców i JDG)" if is_jdg else "Standardowy lokal handlowy/biurowy"
+        else:
+            siedziba_pts = 0
+            siedziba_desc = "Standardowa siedziba / lokal komercyjny adekwatny do skali"
+    else:
+        siedziba_pts = 1
+        siedziba_desc = "Brak ujawnionego pełnego adresu siedziby"
+
+    # 3. Struktura i UBO
+    has_foreign_ubo = False
+    if inp.beneficjenci:
+        for b in inp.beneficjenci:
+            if isinstance(b, dict):
+                obyw = str(b.get("obywatelstwo", "")).upper()
+            else:
+                # Format stringowy np. "Anna Nowak [Obywatelstwo: CYPR]"
+                b_str = str(b).upper()
+                if "OBYWATELSTWO:" in b_str:
+                    obyw = b_str.split("OBYWATELSTWO:")[1].split("]")[0].strip()
+                else:
+                    obyw = ""
+            if obyw and obyw not in ("POLSKA", "PL", "POLSKIE"):
+                has_foreign_ubo = True
+                break
+
+    if has_foreign_ubo or inp.is_foreign:
+        ubo_pts = 6
+        ubo_desc = "Nierezydent / podmiot zagraniczny w strukturze UBO lub zagraniczna forma prawna (ryzyko ukrycia beneficjenta)"
+    elif inp.crbr_status in ("ROZBIEZNOSCI", "BRAK_WPISU"):
+        ubo_pts = 3
+        ubo_desc = f"Brak spójności lub brak wymaganego wpisu w CRBR ({inp.crbr_status})"
+    else:
+        ubo_pts = 0
+        ubo_desc = "Przejrzysta struktura właścicielska, beneficjent będący rezydentem PL ujawniony w CRBR"
+
+    # 4. Branża i skala obrotów
+    matched_high = []
+    matched_sensitive = []
+    if inp.kody_pkd:
+        matched_high = [p for p in inp.kody_pkd if any(p.startswith(pref) for pref in HIGH_RISK_PKD_PREFIXES)]
+        matched_sensitive = [p for p in inp.kody_pkd if any(p.startswith(pref) for pref in SENSITIVE_PKD_PREFIXES)]
+
+    # Flaga kapitału 5 000 zł przy wysokich obrotach (np. transakcja >= 100 000 zł)
+    low_capital_high_tx = (
+        inp.kapital_zakladowy is not None
+        and inp.kapital_zakladowy <= Decimal("5000")
+        and inp.kwota_transakcji is not None
+        and inp.kwota_transakcji >= Decimal("100000")
+    )
+
+    if matched_high or low_capital_high_tx:
+        branza_pts = 6
+        reasons = []
+        if matched_high:
+            reasons.append(f"Branża wysokiego ryzyka GIIF/VAT (PKD: {', '.join(matched_high[:2])})")
+        if low_capital_high_tx:
+            reasons.append(f"Wysoka transakcja ({inp.kwota_transakcji:,.2f} zł) przy minimalnym kapitale zakładowym ({inp.kapital_zakladowy} zł)")
+        branza_desc = " | ".join(reasons)
+    elif matched_sensitive:
+        branza_pts = 3
+        branza_desc = f"Branża wrażliwa podatkowo (budownictwo, transport, doradztwo, e-commerce; PKD: {', '.join(matched_sensitive[:2])})"
+    else:
+        branza_pts = 0
+        branza_desc = "Standardowa branża o niskim profilu ryzyka operacyjnego"
+
+    # 5. Kanał nawiązania relacji
+    if inp.kanal_relacji == KanalRelacji.SPOTKANIE_OSOBISTE:
+        kanal_pts = 0
+        kanal_desc = "Spotkanie osobiste z bezpośrednią weryfikacją tożsamości i umocowania"
+    else:
+        kanal_pts = 3
+        kanal_desc = "Relacja nawiązana zdalnie (online) – art. 43 ust. 2 pkt 3 ustawy AML"
+
+    suma = staz_pts + siedziba_pts + ubo_pts + branza_pts + kanal_pts
+
+    if suma <= 4:
+        profil = ProfilRyzykaKyc.NISKIE
+        podsumowanie = f"Niski profil ryzyka KYC ({suma} pkt GIIF). Wystarczające standardowe środki bezpieczeństwa finansowego (SDD)."
+    elif suma <= 9:
+        profil = ProfilRyzykaKyc.STANDARDOWE
+        podsumowanie = f"Standardowy profil ryzyka KYC ({suma} pkt GIIF). Wymagany rutynowy monitoring transakcji i aktualności danych."
+    elif suma <= 14:
+        profil = ProfilRyzykaKyc.PODWYZSZONE_EDD
+        podsumowanie = f"Podwyższony profil ryzyka KYC ({suma} pkt GIIF). Wymagane wzmożone środki bezpieczeństwa finansowego (EDD) oraz weryfikacja źródła pochodzenia majątku."
+    else:
+        profil = ProfilRyzykaKyc.WYSOKIE_NIEAKCEPTOWALNE
+        podsumowanie = f"Wysoki / nieakceptowalny profil ryzyka KYC ({suma} pkt GIIF). Wymagana zgoda kierownictwa wyższego szczebla lub odmowa nawiązania relacji gospodarczej."
+
+    return KycScorecard(
+        staz_punkty=staz_pts,
+        staz_opis=staz_desc,
+        siedziba_punkty=siedziba_pts,
+        siedziba_opis=siedziba_desc,
+        ubo_punkty=ubo_pts,
+        ubo_opis=ubo_desc,
+        branza_punkty=branza_pts,
+        branza_opis=branza_desc,
+        kanal_punkty=kanal_pts,
+        kanal_opis=kanal_desc,
+        suma_punktow=suma,
+        profil_ryzyka=profil,
+        podsumowanie=podsumowanie,
+    )
+

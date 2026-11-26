@@ -238,6 +238,19 @@ class Database:
             cur = conn.execute("DELETE FROM verifications")
             return cur.rowcount
 
+    def count_address_verifications(self, adres: Optional[str]) -> int:
+        """Zwraca liczbę wcześniejszych weryfikacji podmiotów zarejestrowanych pod tym samym adresem."""
+        if not adres or len(adres.strip()) < 5:
+            return 0
+        cleaned = adres.strip().lower()
+        like_pattern = f"%{cleaned[:40]}%"
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(DISTINCT identifier) FROM verifications WHERE card_json LIKE ?",
+                (like_pattern,),
+            ).fetchone()
+            return int(row[0]) if row else 0
+
     def get_verification_stats(self) -> Dict[str, int]:
         with self.connect() as conn:
             row = conn.execute(

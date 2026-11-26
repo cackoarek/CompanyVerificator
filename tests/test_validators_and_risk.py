@@ -52,7 +52,7 @@ def test_classify_identifier():
 
 
 def test_risk_engine_sanctions_stop():
-    score, factors, level, decision, _, _ = evaluate_risk(
+    score, factors, level, decision, _, _, _ = evaluate_risk(
         RiskEvaluationInput(
             is_foreign=False,
             status_rejestru="AKTYWNY",
@@ -86,7 +86,7 @@ def test_risk_engine_sanctions_stop():
 
 def test_risk_engine_whitelist_threshold_and_offline():
     # Ponad 15 000 zł i brak na Białej Liście -> SREDNIE + WYMAGA_WYJASNIENIA + MPP
-    score, factors, level, decision, _, mpp = evaluate_risk(
+    score, factors, level, decision, _, mpp, _ = evaluate_risk(
         RiskEvaluationInput(
             is_foreign=False,
             status_rejestru="AKTYWNY",
@@ -109,7 +109,7 @@ def test_risk_engine_whitelist_threshold_and_offline():
     assert any(f.code == "BANK_NOT_ON_WHITELIST" for f in factors)
 
     # Poniżej 15 000 zł -> brak kary za konto poza listą
-    _, factors_small, level_small, dec_small, _, mpp_small = evaluate_risk(
+    _, factors_small, level_small, dec_small, _, mpp_small, _ = evaluate_risk(
         RiskEvaluationInput(
             is_foreign=False,
             status_rejestru="AKTYWNY",
@@ -132,7 +132,7 @@ def test_risk_engine_whitelist_threshold_and_offline():
     assert factors_small == []
 
     # Czynny podatnik VAT bez podanego rachunku i bez kont w MF -> NO_REGISTERED_BANK_ACCOUNTS (+20 pkt)
-    score_no_acc, factors_no_acc, level_no_acc, dec_no_acc, _, _ = evaluate_risk(
+    score_no_acc, factors_no_acc, level_no_acc, dec_no_acc, _, _, _ = evaluate_risk(
         RiskEvaluationInput(
             is_foreign=False,
             status_rejestru="AKTYWNY",
@@ -169,3 +169,56 @@ def test_canonical_sha256_covers_evidence():
     card.mf_request_id = "req-999"
     h2 = compute_card_sha256(card)
     assert h1 != h2
+
+
+def test_kyc_scorecard_giif_and_virtual_office_detection():
+    """Testuje wyliczanie 5 filarów oceny ryzyka KYC wg wytycznych GIIF/KOR oraz detekcję wirtualnego biura."""
+    from src.domain.enums import KanalRelacji, ProfilRyzykaKyc
+    from src.domain.virtual_office import is_virtual_office_or_mass_address
+
+    # 1. Test detekcji wirtualnego biura
+    is_vo, reason = is_virtual_office_or_mass_address("ul. Złota 59, 00-120 Warszawa")
+    assert is_vo is True
+    assert "złota 59" in reason.lower()
+
+    is_vo_kw, _ = is_virtual_office_or_mass_address("ul. Prosta 1, Coworking Hub, Kraków")
+    assert is_vo_kw is True
+
+    is_normal, _ = is_virtual_office_or_mass_address("ul. Leśna 15, 05-500 Piaseczno")
+    assert is_normal is False
+
+    # 2. Test scorecardu KYC GIIF dla podmiotu wysokiego ryzyka
+    # Staż < 6 mies (5 pkt), Siedziba: wirtualne biuro (4 pkt), UBO: zagranica (6 pkt), Branża: krypto/paliwa (6 pkt), Kanał: zdalnie (3 pkt) = 24 pkt
+    inp_high = RiskEvaluationInput(
+        is_foreign=False,
+        status_rejestru="AKTYWNY",
+        upadlosc_lub_likwidacja=False,
+        platnik_vat_czynny=True,
+        status_vat="Czynny",
+        vies_valid=None,
+        status_rachunku=StatusRachunkuBankowego.ZGODNY_BIALA_LISTA,
+        kwota_transakcji=Decimal("150000"),
+        crbr_status="ZGODNY",
+        sanction_hits=[],
+        status_pep=False,
+        blad_polaczenia=False,
+        niekompletne_zrodla=[],
+        data_wpisu_rejestru="2026-10-15",  # Bardzo świeża spółka (< 60 dni)
+        adres="ul. Złota 59, Warszawa",    # Wirtualne biuro
+        kody_pkd=["46.71.Z"],              # Paliwa - wysokie ryzyko
+        kapital_zakladowy=Decimal("5000"), # Minimalny kapitał przy transakcji 150k
+        beneficjenci=[{"imie": "John", "nazwisko": "Doe", "obywatelstwo": "CYPR"}],
+        kanal_relacji=KanalRelacji.ZDALNIE,
+    )
+    score, factors, level, decision, _, _, scorecard = evaluate_risk(inp_high)
+
+    assert scorecard is not None
+    assert scorecard.staz_punkty == 5
+    assert scorecard.siedziba_punkty == 4
+    assert scorecard.branza_punkty == 6
+    assert scorecard.ubo_punkty == 6
+    assert scorecard.kanal_punkty == 3
+    assert scorecard.suma_punktow == 24
+    assert scorecard.profil_ryzyka == ProfilRyzykaKyc.WYSOKIE_NIEAKCEPTOWALNE
+    assert any(f.code == "VIRTUAL_OFFICE_MASS_ADDRESS" for f in factors)
+

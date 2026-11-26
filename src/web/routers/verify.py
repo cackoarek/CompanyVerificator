@@ -36,6 +36,7 @@ async def verify_single_company(
     rachunek: Optional[str] = Form(None),
     kwota: Optional[str] = Form(None),
     status_pep: bool = Form(False),
+    kanal_relacji: str = Form("ZDALNIE"),
     force: bool = Form(False),
 ):
     """Uruchamia asynchroniczną weryfikację ad-hoc i zwraca kartę wyniku HTMX."""
@@ -52,6 +53,9 @@ async def verify_single_company(
         or (request.client.host if request.client else "127.0.0.1")
     )
 
+    from src.domain.enums import KanalRelacji
+    kanal_enum = KanalRelacji.SPOTKANIE_OSOBISTE if kanal_relacji == "SPOTKANIE_OSOBISTE" else KanalRelacji.ZDALNIE
+
     svc = get_verification_service(request)
     card = await svc.verify_company(
         identifier=identifier.strip(),
@@ -59,6 +63,7 @@ async def verify_single_company(
         rachunek_bankowy=rachunek.strip() if rachunek and rachunek.strip() else None,
         kwota_transakcji=kwota_dec,
         status_pep=status_pep,
+        kanal_relacji=kanal_enum,
         force=force,
         client_ip=client_ip,
     )

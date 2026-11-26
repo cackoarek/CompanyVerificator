@@ -148,6 +148,26 @@ def render_card_markdown(card: VerificationCard) -> str:
         for rf in card.risk_factors:
             lines.append(f"| `{rf.code}` | {rf.title} | +{rf.points} | {rf.legal_basis} | {rf.recommendation} |")
 
+    if card.kyc_scorecard:
+        lines.extend(
+            [
+                "",
+                "---",
+                "## 3a. Profil Ryzyka Klienta KYC (GIIF / Krajowa Ocena Ryzyka)",
+                f"* **Łączna punktacja GIIF:** `{card.kyc_scorecard.suma_punktow}/25 pkt`",
+                f"* **Kategoria profilu KYC:** **{card.kyc_scorecard.profil_ryzyka.value}**",
+                f"* **Podsumowanie procedury:** {card.kyc_scorecard.podsumowanie}",
+                "",
+                "| Filar oceny ryzyka KYC | Kryterium i opis | Punkty |",
+                "| :--- | :--- | :---: |",
+                f"| **1. Staż rynkowy** | {card.kyc_scorecard.staz_opis} | **{card.kyc_scorecard.staz_punkty}** |",
+                f"| **2. Siedziba i zaplecze** | {card.kyc_scorecard.siedziba_opis} | **{card.kyc_scorecard.siedziba_punkty}** |",
+                f"| **3. Struktura i UBO** | {card.kyc_scorecard.ubo_opis} | **{card.kyc_scorecard.ubo_punkty}** |",
+                f"| **4. Branża i kapitał** | {card.kyc_scorecard.branza_opis} | **{card.kyc_scorecard.branza_punkty}** |",
+                f"| **5. Kanał nawiązania relacji** | {card.kyc_scorecard.kanal_opis} | **{card.kyc_scorecard.kanal_punkty}** |",
+            ]
+        )
+
     lines.extend(
         [
             "",
