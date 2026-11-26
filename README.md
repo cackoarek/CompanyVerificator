@@ -6,6 +6,7 @@
 ---
 
 ## Spis treści
+- [📚 Pełna dokumentacja projektu (docs/)](docs/INDEX.md)
 - [Funkcje](#funkcje)
 - [Wymagania i instalacja](#wymagania-i-instalacja)
 - [Konfiguracja środowiska (.env)](#konfiguracja-środowiska-env)
