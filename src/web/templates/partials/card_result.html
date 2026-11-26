@@ -207,12 +207,12 @@
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
       {% for acc in karta.rachunki_zgloszone_mf %}
-      <div class="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-emerald-200 font-mono text-[11px] text-slate-800 shadow-sm">
-        <span class="font-semibold">{{ acc[:2] }} {{ acc[2:6] }} {{ acc[6:10] }} {{ acc[10:14] }} {{ acc[14:18] }} {{ acc[18:22] }} {{ acc[22:26] }}</span>
+      <div class="flex items-center justify-between bg-white px-2.5 py-2 rounded-lg border border-emerald-200 font-mono text-[10px] sm:text-[11px] text-slate-800 shadow-sm overflow-hidden">
+        <span class="font-semibold tracking-tight truncate">{{ acc[:2] }} {{ acc[2:6] }} {{ acc[6:10] }} {{ acc[10:14] }} {{ acc[14:18] }} {{ acc[18:22] }} {{ acc[22:26] }}</span>
         <button
           type="button"
           @click="navigator.clipboard.writeText('{{ acc }}'); copiedIdx = {{ loop.index0 }}; setTimeout(() => { if (copiedIdx === {{ loop.index0 }}) copiedIdx = null }, 2000)"
-          class="ml-2 px-2 py-0.5 rounded text-[10px] font-sans font-medium transition-colors"
+          class="ml-2 px-2 py-0.5 rounded text-[10px] font-sans font-medium transition-colors shrink-0"
           :class="copiedIdx === {{ loop.index0 }} ? 'bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'"
         >
           <span x-text="copiedIdx === {{ loop.index0 }} ? '✓ Skopiowano' : 'Kopiuj'"></span>

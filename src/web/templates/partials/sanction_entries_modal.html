@@ -23,7 +23,8 @@
     <!-- Tabela wpisów -->
     <div class="p-4 overflow-y-auto space-y-3 flex-1 text-xs">
       {% if entries %}
-      <table class="w-full text-left border-collapse">
+      <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse min-w-[500px]">
         <thead>
           <tr class="border-b border-slate-200 text-slate-400 uppercase text-[10px] font-bold">
             <th class="py-2 px-1">Typ</th>
@@ -62,6 +63,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
       {% else %}
       <div class="p-8 text-center text-slate-500">
         Brak wpisów dla tego źródła. Użyj przycisku synchronizacji, aby pobrać dane.
