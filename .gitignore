@@ -25,3 +25,6 @@ data/
 .ruff_cache/
 .coverage
 htmlcov/
+
+# Local session notes
+work-session.md
