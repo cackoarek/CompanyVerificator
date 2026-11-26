@@ -323,7 +323,20 @@ class VerificationService:
         )
         kody_pkd = krs_data.get("kody_pkd") or ceidg_data.get("kody_pkd") or []
         pkd_glowny = krs_data.get("pkd_glowny") or ceidg_data.get("pkd_glowny")
-        data_rozpoczecia = krs_data.get("data_rejestracji") or ceidg_data.get("data_rozpoczecia") or None
+        data_rozpoczecia = (
+            krs_data.get("data_rejestracji")
+            or ceidg_data.get("data_rozpoczecia")
+            or (gus_data.get("data_rozpoczecia") if gus_data else None)
+            or (gus_data.get("data_powstania") if gus_data else None)
+            or None
+        )
+        data_wpisu_rejestru = (
+            krs_data.get("data_rejestracji")
+            or ceidg_data.get("data_rozpoczecia")
+            or (gus_data.get("data_wpisu_rejestru") if gus_data else None)
+            or (gus_data.get("data_powstania") if gus_data else None)
+            or None
+        )
         upadlosc_lub_likwidacja = bool(krs_data.get("upadlosc_lub_likwidacja", False))
 
         if is_foreign:
@@ -533,7 +546,7 @@ class VerificationService:
                 blad_polaczenia=blad_polaczenia,
                 niekompletne_zrodla=niekompletne_zrodla,
                 data_rozpoczecia=data_rozpoczecia,
-                data_wpisu_rejestru=krs_data.get("data_rejestracji") or ceidg_data.get("data_rozpoczecia") or None,
+                data_wpisu_rejestru=data_wpisu_rejestru,
                 kody_pkd=kody_pkd,
                 iban_invalid=iban_invalid,
                 rachunki_mf=konta_mf,
@@ -559,7 +572,7 @@ class VerificationService:
             kraj=country_code or "PL",
             forma_prawna=forma_prawna,
             data_rozpoczecia=data_rozpoczecia,
-            data_wpisu_rejestru=krs_data.get("data_rejestracji") or ceidg_data.get("data_rozpoczecia") or None,
+            data_wpisu_rejestru=data_wpisu_rejestru,
             kody_pkd=kody_pkd,
             pkd_glowny=pkd_glowny,
             status_rejestru=status_rejestru,

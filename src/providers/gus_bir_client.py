@@ -205,9 +205,12 @@ class GusBirClient:
             typ_podmiotu = raw.get("Typ", "")
             forma_prawna = "Osoba prawna / jednostka organizacyjna" if typ_podmiotu == "P" else ("Osoba fizyczna (działalność)" if typ_podmiotu == "F" else "Inna forma organizacyjna")
 
-            # Jeśli typ == "P" (osoba prawna), spróbuj pobrać KRS z pełnego raportu jeśli nie ma go w wyniku podstawowym
+            # Jeśli typ == "P" (osoba prawna), spróbuj pobrać KRS, daty powstania oraz dokładną formę z pełnego raportu
             krs_val = raw.get("Krs") or None
-            if not krs_val and typ_podmiotu == "P" and raw.get("Regon"):
+            data_powstania_val = None
+            data_rozpoczecia_val = None
+            data_wpisu_rejestru_val = None
+            if typ_podmiotu == "P" and raw.get("Regon"):
                 try:
                     full_body = f"""<ns:DanePobierzPelnyRaport>
 <ns:pRegon>{raw.get("Regon")}</ns:pRegon>
@@ -231,9 +234,19 @@ class GusBirClient:
                             if dane_full is not None:
                                 krs_cand = dane_full.findtext("praw_numerWrejestrzeEwidencji") or dane_full.findtext("praw_numerWRejestrzeEwidencji")
                                 rod_rejestru = dane_full.findtext("praw_rodzajRejestruEwidencji_Nazwa") or ""
-                                if krs_cand and ("KRS" in rod_rejestru or "PRZEDSIĘBIORCÓW" in rod_rejestru or len(krs_cand) == 10):
+                                if not krs_val and krs_cand and ("KRS" in rod_rejestru or "PRZEDSIĘBIORCÓW" in rod_rejestru or len(krs_cand) == 10):
                                     krs_val = krs_cand.strip().zfill(10)
                                     app_logger.info(f"GUS BIR: Pozyskano KRS {krs_val} z pełnego raportu dla REGON {raw.get('Regon')}")
+                                
+                                # Daty założenia / rejestracji z rejestru REGON
+                                data_powstania_val = dane_full.findtext("praw_dataPowstania") or None
+                                data_rozpoczecia_val = dane_full.findtext("praw_dataRozpoczeciaDzialalnosci") or None
+                                data_wpisu_rejestru_val = dane_full.findtext("praw_dataWpisuDoRejestruEwidencji") or None
+                                
+                                # Dokładniejsza forma prawna z REGON (np. STOWARZYSZENIA NIEWPISANE DO KRS)
+                                szczegolna_forma = dane_full.findtext("praw_szczegolnaFormaPrawna_Nazwa")
+                                if szczegolna_forma:
+                                    forma_prawna = szczegolna_forma.strip()
                 except Exception as exc_full:
                     app_logger.debug(f"GUS BIR: Nie udało się pobrać pełnego raportu KRS: {exc_full}")
 
@@ -252,6 +265,9 @@ class GusBirClient:
                 "adres_rejestrowy": _format_address(raw),
                 "typ": typ_podmiotu,
                 "forma_prawna": forma_prawna,
+                "data_powstania": data_powstania_val,
+                "data_rozpoczecia": data_rozpoczecia_val,
+                "data_wpisu_rejestru": data_wpisu_rejestru_val,
                 "data_zakonczenia": raw.get("DataZakonczeniaDzialalnosci") or None,
                 "zrodlo": "GUS_REGON_BIR",
             }
