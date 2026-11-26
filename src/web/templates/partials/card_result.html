@@ -13,9 +13,14 @@
         {% if karta.regon %} | REGON: {{ karta.regon }}{% endif %}
         {% if karta.krs %} | KRS: {{ karta.krs }}{% endif %}
       </p>
-      {% if karta.adres %}
-        <p class="text-xs text-slate-500 mt-1">📍 {{ karta.adres }}</p>
-      {% endif %}
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-1">
+        {% if karta.adres %}<span>📍 {{ karta.adres }}</span>{% endif %}
+        {% if karta.krs and (karta.data_wpisu_rejestru or karta.data_rozpoczecia) %}
+          <span>📅 Data wpisu do rejestru przedsiębiorców: <strong class="text-slate-700">{{ karta.data_wpisu_rejestru or karta.data_rozpoczecia }}</strong></span>
+        {% elif karta.data_rozpoczecia %}
+          <span>📅 Rozpoczęcie działalności: <strong class="text-slate-700">{{ karta.data_rozpoczecia }}</strong></span>
+        {% endif %}
+      </div>
     </div>
 
     <div class="flex flex-col items-start md:items-end gap-1.5">

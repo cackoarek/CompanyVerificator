@@ -477,6 +477,7 @@ class VerificationService:
             kraj=country_code or "PL",
             forma_prawna=forma_prawna,
             data_rozpoczecia=data_rozpoczecia,
+            data_wpisu_rejestru=krs_data.get("data_rejestracji") or ceidg_data.get("data_rozpoczecia") or None,
             kody_pkd=kody_pkd,
             pkd_glowny=pkd_glowny,
             status_rejestru=status_rejestru,

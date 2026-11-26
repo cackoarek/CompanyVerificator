@@ -66,6 +66,7 @@ class VerificationCard:
     kraj: str = "PL"
     forma_prawna: str = "NIEZNANA"
     data_rozpoczecia: Optional[str] = None
+    data_wpisu_rejestru: Optional[str] = None
     kody_pkd: List[str] = field(default_factory=list)
     pkd_glowny: Optional[str] = None
 

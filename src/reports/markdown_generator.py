@@ -77,7 +77,7 @@ def render_card_markdown(card: VerificationCard) -> str:
             f"* **NIP:** `{card.nip or 'Brak'}` | **REGON:** `{card.regon or 'Brak'}` | **KRS:** `{card.krs or 'Brak'}`",
             f"* **Adres:** {card.adres or 'Brak danych adresowych'}",
             f"* **Forma prawna:** {card.forma_prawna}",
-            f"* **Data rozpoczęcia działalności:** {card.data_rozpoczecia or 'Brak danych'}",
+            f"* **Data wpisu do rejestru przedsiębiorców:** {card.data_wpisu_rejestru or card.data_rozpoczecia or 'Brak danych'}" if card.krs else f"* **Data rozpoczęcia działalności:** {card.data_rozpoczecia or 'Brak danych'}",
             f"* **PKD główny:** `{card.pkd_glowny or 'Brak'}`",
             "",
             "---",
