@@ -8,10 +8,10 @@
         <span class="text-[11px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{{ karta.forma_prawna }}</span>
       </div>
       <p class="text-xs text-slate-500 font-mono mt-1">
-        {{ karta.identifier_kind }}: <strong class="text-slate-800">{{ karta.identifier }}</strong>
-        {% if karta.nip %} | NIP: {{ karta.nip }}{% endif %}
-        {% if karta.regon %} | REGON: {{ karta.regon }}{% endif %}
-        {% if karta.krs %} | KRS: {{ karta.krs }}{% endif %}
+        {% if karta.nip %}NIP: <strong class="text-slate-800">{{ karta.nip }}</strong>{% endif %}
+        {% if karta.regon %}{% if karta.nip %} | {% endif %}REGON: <strong class="text-slate-800">{{ karta.regon }}</strong>{% endif %}
+        {% if karta.krs %}{% if karta.nip or karta.regon %} | {% endif %}KRS: <strong class="text-slate-800">{{ karta.krs }}</strong>{% endif %}
+        {% if karta.vat_ue %}{% if karta.nip or karta.regon or karta.krs %} | {% endif %}VAT-UE: <strong class="text-slate-800">{{ karta.vat_ue }}</strong>{% endif %}
       </p>
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-1">
         {% if karta.adres %}<span>📍 {{ karta.adres }}</span>{% endif %}
