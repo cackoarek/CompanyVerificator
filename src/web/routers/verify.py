@@ -53,6 +53,13 @@ async def verify_single_company(
         or (request.client.host if request.client else "127.0.0.1")
     )
 
+    from src.core.security import check_verify_rate_limit
+    if not check_verify_rate_limit(client_ip):
+        raise HTTPException(
+            status_code=429,
+            detail="Przekroczono limit liczby zapytań weryfikacyjnych (maks. 60 na minutę). Spróbuj ponownie za chwilę.",
+        )
+
     from src.domain.enums import KanalRelacji
     kanal_enum = KanalRelacji.SPOTKANIE_OSOBISTE if kanal_relacji == "SPOTKANIE_OSOBISTE" else KanalRelacji.ZDALNIE
 

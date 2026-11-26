@@ -1,15 +1,59 @@
-"""Mechanizmy bezpieczeństwa warstwy webowej (CSRF, Open Redirect, HTTPS, Rate Limiting)."""
-
+import hashlib
+import hmac
 import os
+import secrets
 import time
 import urllib.parse
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from fastapi import Request
 
 _login_attempts: Dict[str, List[float]] = defaultdict(list)
 _RATE_LIMIT_MAX_ATTEMPTS = 5
+DEFAULT_SESSION_MAX_AGE_SECONDS = 12 * 3600.0  # 12 godzin
+
+
+def _get_signing_key(secret: str) -> bytes:
+    """Tworzy bezpieczny klucz sygnatury z sekretu aplikacji."""
+    return hashlib.sha256(f"cv-session-key:{secret}".encode("utf-8")).digest()
+
+
+def create_session_token(secret: str, max_age: float = DEFAULT_SESSION_MAX_AGE_SECONDS) -> str:
+    """Generuje kryptograficznie podpisany token sesji z timestampem (HMAC-SHA256).
+    
+    Format: timestamp.random_nonce.hmac_signature
+    """
+    ts = str(int(time.time()))
+    nonce = secrets.token_hex(8)
+    payload = f"{ts}.{nonce}"
+    sig = hmac.new(_get_signing_key(secret), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"{payload}.{sig}"
+
+
+def verify_session_token(token: str, secret: str, max_age: float = DEFAULT_SESSION_MAX_AGE_SECONDS) -> bool:
+    """Weryfikuje autentyczność, podpis HMAC oraz ważność czasową tokena sesyjnego."""
+    if not token or not secret:
+        return False
+    parts = token.split(".")
+    if len(parts) != 3:
+        # Obsługa kompatybilności wstecznej (dla surowego tokena)
+        return secrets.compare_digest(token, secret)
+
+    ts_str, nonce, received_sig = parts
+    try:
+        ts = int(ts_str)
+    except ValueError:
+        return False
+
+    # Sprawdzenie ważności czasowej
+    now = time.time()
+    if now < ts - 60 or now - ts > max_age:
+        return False
+
+    payload = f"{ts_str}.{nonce}"
+    expected_sig = hmac.new(_get_signing_key(secret), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return secrets.compare_digest(received_sig, expected_sig)
 
 
 def get_lockout_seconds() -> float:
@@ -19,6 +63,7 @@ def get_lockout_seconds() -> float:
         return max(val * 3600.0, 60.0)
     except Exception:
         return 5 * 3600.0
+
 
 
 def reset_login_rate_limits() -> None:
@@ -43,6 +88,30 @@ def record_failed_login_attempt(client_ip: str) -> None:
 def check_login_rate_limit(client_ip: str) -> bool:
     """Zwraca True jeśli IP nie jest zablokowane (kompatybilność wsteczna)."""
     return not is_ip_locked_out(client_ip)
+
+
+_verify_attempts: Dict[str, List[float]] = defaultdict(list)
+_VERIFY_MAX_RPM = 60  # Maksymalnie 60 zapytań weryfikacyjnych na minutę z jednego IP
+
+
+def check_verify_rate_limit(client_ip: str, max_requests: int = _VERIFY_MAX_RPM, window_seconds: float = 60.0) -> bool:
+    """Ochrona przed floodem zapytań do rejestrów rządowych (Sliding Window Rate Limiter).
+    
+    Zwraca True jeśli żądanie mieści się w limicie, False jeśli przekroczono.
+    """
+    now = time.time()
+    history = _verify_attempts[client_ip]
+    history[:] = [t for t in history if now - t < window_seconds]
+    if len(history) >= max_requests:
+        return False
+    history.append(now)
+    return True
+
+
+def reset_verify_rate_limits() -> None:
+    """Czyści licznik prób weryfikacji (używane w testach)."""
+    _verify_attempts.clear()
+
 
 
 def is_secure_request(request: Request) -> bool:

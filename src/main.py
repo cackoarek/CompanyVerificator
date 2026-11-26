@@ -26,11 +26,13 @@ from src.config import (
 from src.core.database import Database
 from src.core.logging_config import app_logger
 from src.core.security import (
+    create_session_token,
     is_ip_locked_out,
     is_safe_redirect_url,
     is_secure_request,
     is_trusted_origin,
     record_failed_login_attempt,
+    verify_session_token,
 )
 from src.providers.sanctions.sync_service import seed_default_sanctions
 from src.web.routers import batch, history, how_it_works, sanctions, verify
@@ -70,6 +72,8 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    if is_secure_request(request):
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; "
@@ -110,7 +114,7 @@ async def optional_token_auth_middleware(request: Request, call_next):
     # 1. Sprawdzenie WEB_PASSWORD
     if required_web_pass:
         cookie_val = request.cookies.get(COOKIE_AUTH_TOKEN, "")
-        if not cookie_val or not secrets.compare_digest(cookie_val, required_web_pass):
+        if not cookie_val or not verify_session_token(cookie_val, required_web_pass):
             client_ip = request.client.host if request.client else "127.0.0.1"
             safe_redirect = html.escape(request.url.path if is_safe_redirect_url(request.url.path) else "/", quote=True)
             locked = is_ip_locked_out(client_ip)
@@ -164,7 +168,14 @@ async def optional_token_auth_middleware(request: Request, call_next):
         if not token_candidate:
             token_candidate = request.cookies.get(COOKIE_AUTH_TOKEN) or request.headers.get("x-access-token")
 
-        if not (token_candidate and len(token_candidate) <= 256 and secrets.compare_digest(token_candidate, required_token)):
+        is_token_ok = False
+        if token_candidate:
+            if secrets.compare_digest(token_candidate, required_token):
+                is_token_ok = True
+            elif verify_session_token(token_candidate, required_token):
+                is_token_ok = True
+
+        if not is_token_ok:
             safe_redirect = html.escape(request.url.path if is_safe_redirect_url(request.url.path) else "/", quote=True)
             if "text/html" in request.headers.get("accept", ""):
                 return HTMLResponse(
@@ -248,12 +259,14 @@ async def login_post(request: Request):
         target_url = raw_redirect if is_safe_redirect_url(raw_redirect) else "/"
         resp = RedirectResponse(url=target_url, status_code=303)
         if auth_secret:
+            signed_token = create_session_token(auth_secret)
             resp.set_cookie(
                 key=COOKIE_AUTH_TOKEN,
-                value=auth_secret,
+                value=signed_token,
                 httponly=True,
                 secure=is_secure_request(request),
                 samesite="lax",
+                max_age=12 * 3600,
             )
         return resp
 

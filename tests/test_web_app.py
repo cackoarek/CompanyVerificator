@@ -218,3 +218,42 @@ def test_how_it_works_page_publicly_accessible(tmp_path: Path, monkeypatch):
     assert "Matryca ryzyka" in resp_guide.text
     assert "Firma niedawno założona" in resp_guide.text
 
+
+def test_signed_session_tokens_and_security_hardening(tmp_path: Path, monkeypatch):
+    """Testuje podpis kryptograficzny ciasteczek sesyjnych HMAC, nagłówek HSTS i rate limiting."""
+    from src.core.security import (
+        create_session_token,
+        verify_session_token,
+        check_verify_rate_limit,
+        reset_verify_rate_limits,
+    )
+
+    # 1. Test HMAC session token
+    secret = "bardzo_tajne_haslo_123"
+    token = create_session_token(secret, max_age=3600)
+    assert verify_session_token(token, secret, max_age=3600) is True
+    # Zły sekret
+    assert verify_session_token(token, "inne_haslo", max_age=3600) is False
+    # Sfałszowany token
+    parts = token.split(".")
+    tampered = f"{parts[0]}.{parts[1]}.badsignature"
+    assert verify_session_token(tampered, secret, max_age=3600) is False
+    # Przestarzały token (max_age=-1)
+    assert verify_session_token(token, secret, max_age=-1) is False
+
+    # 2. Test rate limitera weryfikacji
+    reset_verify_rate_limits()
+    test_ip = "192.168.1.100"
+    for _ in range(5):
+        assert check_verify_rate_limit(test_ip, max_requests=5, window_seconds=60) is True
+    # 6. żądanie przekracza limit
+    assert check_verify_rate_limit(test_ip, max_requests=5, window_seconds=60) is False
+
+    # 3. Test nagłówka HSTS
+    client = _make_client(tmp_path, monkeypatch)
+    resp = client.get("/health", headers={"x-forwarded-proto": "https"})
+    assert resp.status_code == 200
+    assert "Strict-Transport-Security" in resp.headers
+    assert "max-age=31536000" in resp.headers["Strict-Transport-Security"]
+
+
