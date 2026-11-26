@@ -1,0 +1,59 @@
+<div id="public-companies-card-container" class="bg-white p-4 rounded-2xl border border-slate-200 space-y-3">
+  <div class="flex items-center justify-between">
+    <div class="space-y-0.5">
+      <div class="font-bold text-slate-900 flex items-center gap-1.5">
+        <span>🏛️</span>
+        <span>Spółki Publiczne (GPW / NewConnect)</span>
+      </div>
+      <p class="text-[11px] text-slate-500">Zwolnienia z CRBR (art. 58 AML) i uproszczone CDD (art. 42 AML)</p>
+    </div>
+    <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if public_companies_stats.is_live_cache %}bg-emerald-100 text-emerald-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+      {% if public_companies_stats.is_live_cache %}🟢 LIVE CACHE{% else %}🔵 SEED BAZOWY{% endif %}
+    </span>
+  </div>
+
+  {% if sync_message %}
+    <div class="p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
+      ✓ {{ sync_message }}
+    </div>
+  {% endif %}
+
+  <div class="grid grid-cols-3 gap-2 text-center">
+    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Łącznie</div>
+      <div class="text-base font-bold font-mono text-slate-800">{{ public_companies_stats.total }}</div>
+    </div>
+    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+      <div class="text-[10px] text-slate-400 font-bold uppercase">GPW Główny</div>
+      <div class="text-base font-bold font-mono text-indigo-700">{{ public_companies_stats.gpw_count }}</div>
+    </div>
+    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+      <div class="text-[10px] text-slate-400 font-bold uppercase">NewConnect</div>
+      <div class="text-base font-bold font-mono text-purple-700">{{ public_companies_stats.nc_count }}</div>
+    </div>
+  </div>
+
+  <div class="text-[11px] text-slate-500 flex items-center justify-between pt-1">
+    <span>Ostatnia synchronizacja:</span>
+    <span class="font-mono font-semibold text-slate-700">{{ public_companies_stats.last_sync }}</span>
+  </div>
+
+  <div class="flex items-center gap-2 pt-1">
+    <button type="button"
+            hx-get="/rejestry/dictionaries/public-companies"
+            hx-target="#sanctions-modal-container"
+            class="flex-1 py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer text-center">
+      🔍 Przeglądaj spółki
+    </button>
+    <form hx-post="/rejestry/sync-public-companies"
+          hx-target="#public-companies-card-container"
+          hx-swap="outerHTML"
+          hx-indicator="#gpw-sync-spinner"
+          class="flex-1">
+      <button type="submit"
+              class="w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer text-center">
+        🔄 Odśwież z sieci
+      </button>
+    </form>
+  </div>
+</div>

@@ -110,6 +110,28 @@ def load_cached_companies() -> List[PublicCompanyEntry]:
     return _MEMORY_CACHE
 
 
+def get_public_companies_stats() -> dict:
+    """Zwraca metryki słownika spółek publicznych na potrzeby widoku Rejestry."""
+    companies = load_cached_companies()
+    target_file = CACHE_FILE if CACHE_FILE.exists() else SEED_FILE
+    mtime = target_file.stat().st_mtime if target_file.exists() else 0.0
+    from datetime import datetime
+    last_sync_str = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S") if mtime > 0 else "Brak"
+    
+    gpw_count = sum(1 for c in companies if c.market == "GPW")
+    nc_count = sum(1 for c in companies if c.market == "NEWCONNECT")
+    
+    return {
+        "total": len(companies),
+        "gpw_count": gpw_count,
+        "nc_count": nc_count,
+        "last_sync": last_sync_str,
+        "cache_file": str(target_file.name),
+        "is_live_cache": CACHE_FILE.exists(),
+    }
+
+
+
 async def sync_public_companies_from_web(force: bool = False) -> int:
     """Pobiera i aktualizuje listę spółek publicznych (GPW / NewConnect) z Internetu.
     

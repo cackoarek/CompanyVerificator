@@ -49,6 +49,99 @@
     {% include "partials/sanctions_sync_status.html" %}
   </div>
 
+  <!-- Sekcja: Wbudowane Słowniki i Bazy Referencyjne -->
+  <div class="space-y-3 pt-2">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+      <div>
+        <h2 class="text-base font-bold text-slate-900">📚 Wbudowane Słowniki i Bazy Referencyjne</h2>
+        <p class="text-xs text-slate-500">Reguły kwalifikacji prawnej, katalog branż wysokiego ryzyka AML oraz automatycznie aktualizowana baza spółek publicznych.</p>
+      </div>
+      <div id="gpw-sync-spinner" class="htmx-indicator items-center space-x-2 text-xs text-indigo-600 font-semibold">
+        <span>⏳</span>
+        <span>Pobieranie aktualnej listy emitentów GPW & NewConnect...</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+      
+      <!-- 1. Karta Spółek Publicznych (z odświeżaniem) -->
+      {% include "partials/public_companies_card.html" %}
+
+      <!-- 2. Karta Wirtualnych Biur -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-3 flex flex-col justify-between">
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <div class="font-bold text-slate-900 flex items-center gap-1.5">
+              <span>🏢</span>
+              <span>Wirtualne Biura i Adresy Masowe</span>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">KOR GIIF</span>
+          </div>
+          <p class="text-[11px] text-slate-500">Katalog adresów coworkingowych i masowych rejestracji spółek w Polsce.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center py-1">
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+            <div class="text-[10px] text-slate-400 font-bold uppercase">Wzorce adresów</div>
+            <div class="text-base font-bold font-mono text-amber-800">{{ dictionaries_stats.virtual_offices_patterns }}</div>
+          </div>
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+            <div class="text-[10px] text-slate-400 font-bold uppercase">Słowa kluczowe</div>
+            <div class="text-base font-bold font-mono text-slate-700">{{ dictionaries_stats.virtual_offices_keywords }}</div>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+          Wykrycie adresu skutkuje alertem compliance oraz naliczeniem punktów ryzyka w filarze Siedziba (Krajowa Ocena Ryzyka).
+        </p>
+
+        <button type="button"
+                hx-get="/rejestry/dictionaries/virtual-offices"
+                hx-target="#sanctions-modal-container"
+                class="w-full py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer text-center">
+          🔍 Zobacz katalog adresów
+        </button>
+      </div>
+
+      <!-- 3. Karta Branż Ryzykownych (PKD & AML) -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-3 flex flex-col justify-between">
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <div class="font-bold text-slate-900 flex items-center gap-1.5">
+              <span>📊</span>
+              <span>Katalog Branż PKD (AML & MPP)</span>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">Załącznik 15 VAT</span>
+          </div>
+          <p class="text-[11px] text-slate-500">Podział na branże podwyższonego ryzyka AML oraz sektor regulowany KNF.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center py-1">
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+            <div class="text-[10px] text-slate-400 font-bold uppercase">Wysokie ryzyko AML</div>
+            <div class="text-base font-bold font-mono text-red-700">{{ dictionaries_stats.pkd_high_risk }}</div>
+          </div>
+          <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+            <div class="text-[10px] text-slate-400 font-bold uppercase">Sektor KNF (Zaufane)</div>
+            <div class="text-base font-bold font-mono text-emerald-700">{{ dictionaries_stats.pkd_knf }}</div>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+          Kwalifikuje obowiązek Split Payment (MPP), karuzele VAT oraz wyłącza fałszywe alerty dla banków i ubezpieczycieli.
+        </p>
+
+        <button type="button"
+                hx-get="/rejestry/dictionaries/pkd-catalog"
+                hx-target="#sanctions-modal-container"
+                class="w-full py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer text-center">
+          🔍 Zobacz katalog PKD
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Kontener na modale HTMX -->
   <div id="sanctions-modal-container"></div>
 

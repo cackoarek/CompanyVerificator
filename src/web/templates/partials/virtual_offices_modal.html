@@ -1,0 +1,65 @@
+<!-- Modal podglądu wirtualnych biur -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+     x-data="{ show: true }"
+     x-show="show"
+     @keydown.escape.window="show = false">
+  <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden"
+       @click.away="show = false">
+    
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <div class="flex items-center space-x-2">
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 uppercase font-mono">Baza Siedzib</span>
+        <h3 class="text-sm font-bold text-slate-900">Wirtualne Biura i Adresy Masowej Rejestracji</h3>
+        <span class="text-xs text-slate-500 font-mono">({{ patterns|length }} lokalizacji)</span>
+      </div>
+      <button type="button"
+              onclick="document.getElementById('sanctions-modal-container').innerHTML = ''"
+              class="text-slate-400 hover:text-slate-600 font-bold text-sm px-2 py-1 rounded cursor-pointer">
+        ✕
+      </button>
+    </div>
+
+    <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
+      <div>
+        <div class="font-bold text-slate-900 mb-2 flex items-center gap-1.5">
+          <span>🏢</span>
+          <span>Znane adresy masowej rejestracji w Polsce (KRS/CEIDG):</span>
+        </div>
+        <p class="text-[11px] text-slate-500 mb-3 leading-relaxed">
+          Wykrycie adresu z tej listy w danych podmiotu skutkuje alertem compliance, podwyższeniem oceny ryzyka KYC GIIF (+4 pkt w filarze Siedziba) oraz koniecznością potwierdzenia rzeczywistego miejsca prowadzenia działalności.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {% for p in patterns %}
+          <div class="p-2 bg-slate-50 rounded-lg border border-slate-200 font-mono text-[11px] text-slate-700 flex items-center justify-between">
+            <span>{{ p }}</span>
+            <span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-sans font-bold">MASOWY</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-200">
+        <div class="font-bold text-slate-900 mb-2 flex items-center gap-1.5">
+          <span>🔎</span>
+          <span>Słowa kluczowe wykrywające biura serwisowane w nazwie siedziby:</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          {% for kw in keywords %}
+          <span class="px-2 py-1 bg-slate-100 text-slate-800 rounded-md text-[11px] font-mono border border-slate-200">
+            {{ kw }}
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+      <span>Wytyczne GIIF & Metodyka MF w zakresie należytej staranności</span>
+      <button type="button"
+              onclick="document.getElementById('sanctions-modal-container').innerHTML = ''"
+              class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-xs font-semibold cursor-pointer">
+        Zamknij
+      </button>
+    </div>
+  </div>
+</div>

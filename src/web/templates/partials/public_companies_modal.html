@@ -1,0 +1,91 @@
+<!-- Modal podglądu spółek publicznych (GPW / NewConnect) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+     x-data="{ show: true }"
+     x-show="show"
+     @keydown.escape.window="show = false">
+  <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden"
+       @click.away="show = false">
+    
+    <!-- Nagłówek modala -->
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <div class="flex items-center space-x-2">
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase font-mono">GPW & NEWCONNECT</span>
+        <h3 class="text-sm font-bold text-slate-900">Słownik Spółek Publicznych</h3>
+        <span class="text-xs text-slate-500 font-mono">({{ total_count }} podmiotów)</span>
+      </div>
+      <button type="button"
+              onclick="document.getElementById('sanctions-modal-container').innerHTML = ''"
+              class="text-slate-400 hover:text-slate-600 font-bold text-sm px-2 py-1 rounded cursor-pointer">
+        ✕
+      </button>
+    </div>
+
+    <!-- Pasek wyszukiwania HTMX w modalu -->
+    <div class="p-3 bg-slate-50 border-b border-slate-200">
+      <input type="text"
+             name="q"
+             value="{{ query }}"
+             placeholder="Szukaj po nazwie spółki, tickerze lub numerze KRS..."
+             hx-get="/rejestry/dictionaries/public-companies"
+             hx-target="#sanctions-modal-container"
+             hx-trigger="keyup changed delay:300ms"
+             class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+    </div>
+
+    <!-- Tabela wpisów -->
+    <div class="p-4 overflow-y-auto space-y-3 flex-1 text-xs">
+      {% if companies %}
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b border-slate-200 text-slate-400 uppercase text-[10px] font-bold">
+            <th class="py-2 px-2">Rynek</th>
+            <th class="py-2 px-2">Ticker</th>
+            <th class="py-2 px-2">Nazwa emitenta</th>
+            <th class="py-2 px-2 font-mono">KRS</th>
+            <th class="py-2 px-2">Status AML</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for c in companies %}
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-2">
+              {% if c.market == 'GPW' %}
+                <span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold text-[10px]">GPW</span>
+              {% else %}
+                <span class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-bold text-[10px]">NewConnect</span>
+              {% endif %}
+            </td>
+            <td class="py-2 px-2 font-mono font-bold text-slate-800">
+              {{ c.ticker }}
+            </td>
+            <td class="py-2 px-2">
+              <strong class="text-slate-900">{{ c.name }}</strong>
+            </td>
+            <td class="py-2 px-2 font-mono text-[11px] text-slate-600">
+              {{ c.krs or '—' }}
+            </td>
+            <td class="py-2 px-2">
+              <span class="text-emerald-700 text-[11px] font-semibold">Zwolniony z CRBR (art. 58)</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center py-8 text-slate-400 text-xs">
+        Brak spółek publicznych spełniających kryteria wyszukiwania "{{ query }}".
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Stopka -->
+    <div class="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+      <span>Podstawa: Rejestr GPW / NewConnect • Art. 58 & 42 ustawy AML</span>
+      <button type="button"
+              onclick="document.getElementById('sanctions-modal-container').innerHTML = ''"
+              class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-xs font-semibold cursor-pointer">
+        Zamknij
+      </button>
+    </div>
+  </div>
+</div>
