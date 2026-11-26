@@ -100,7 +100,7 @@ async def test_krs_parser_and_crbr_and_ceidg_and_vies():
                 json={"beneficjenci": [{"imie": "Jan", "nazwisko": "Kowalski", "charakterUprawnien": "udziałowiec"}]},
             )
         )
-        mock.get("https://dane.biznes.gov.pl/api/ceidg/v2/firmy?nip=5250001090").mock(
+        mock.get("https://dane.biznes.gov.pl/api/ceidg/v3/firmy?nip=5250001090").mock(
             return_value=httpx.Response(
                 200,
                 json={"firmy": [{"nazwa": "FIRMA JDG", "status": "ZAWIESZONY", "pkdGlowny": "62.01.Z", "pkd": ["62.01.Z"], "dataRozpoczecia": "2020-01-01"}]},

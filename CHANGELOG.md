@@ -38,6 +38,13 @@ Format wzorowany na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
   - Usunięto zbędny slogan *"Silnik: Deterministyczny (Zero-Hallucination) • Retencja dowodowa: 5 lat"*.
 - **Skrypt startowy (`run_web.sh`):**
   - Skrypt ładuje teraz zmienne `CV_HOST`, `CV_PORT`, `CV_DEBUG` bezpośrednio ze wskazanego pliku `.env` (zamiast sztywno wpisanego portu 8000). Umożliwia to prostą zmianę portu w `.env` bez edycji skryptów shellowych.
+- **Aktualizacja API Hurtowni Danych CEIDG do wersji v3:**
+  - Zaktualizowano endpoint do `https://dane.biznes.gov.pl/api/ceidg/v3/firmy` (wycofana przez MRiT wersja v2 zwracała błąd bramki API `404 No context-path`).
+  - Rozszerzono pobieranie danych o adres siedziby, numer REGON oraz kody PKD.
+  - Wprowadzono inteligentne wybieranie wpisu aktywnego (`AKTYWNY` / `ZAWIESZONY`) w przypadku przedsiębiorców posiadających wcześniejsze, historycznie wykreślone wpisy w CEIDG pod tym samym NIP.
+- **Obsługa przedsiębiorców niebędących podatnikami VAT (np. zwolnionych podmiotowo/przedmiotowo):**
+  - Przedsiębiorcy aktywni w CEIDG, którzy nie figurują na Białej Liście MF (ponieważ wykaz MF obejmuje wyłącznie zarejestrowanych podatników VAT), otrzymują teraz właściwy status: `Nie figuruje na Białej Liście (np. zwolniony z VAT / niebędący podatnikiem VAT)`.
+  - Zapobieganie fałszywym alarmom podwyższonego ryzyka (brak kary `REGISTRY_INACTIVE` dla aktywnych JDG zwolnionych z VAT).
 - **Ekran logowania:**
   - Ujednolicono teksty na ekranie logowania – zamiast *"Wymagany Token Dostępu"* oraz *"CV_ACCESS_TOKEN"* wyświetlane jest *"🔒 Wymagane hasło dostępu"* i *"Wpisz hasło dostępu"*.
 

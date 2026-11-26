@@ -262,8 +262,19 @@ class VerificationService:
             or nazwa_hint
             or f"Podmiot {clf_norm}"
         )
-        final_adres = krs_data.get("adres") or mf_data.get("adres") or vies_data.get("adres") or None
-        final_regon = krs_data.get("regon") or mf_data.get("regon") or None
+        final_adres = (
+            krs_data.get("adres")
+            or mf_data.get("adres")
+            or ceidg_data.get("adres")
+            or vies_data.get("adres")
+            or None
+        )
+        final_regon = (
+            krs_data.get("regon")
+            or mf_data.get("regon")
+            or ceidg_data.get("regon")
+            or None
+        )
         kody_pkd = krs_data.get("kody_pkd") or ceidg_data.get("kody_pkd") or []
         pkd_glowny = krs_data.get("pkd_glowny") or ceidg_data.get("pkd_glowny")
         data_rozpoczecia = krs_data.get("data_rejestracji") or ceidg_data.get("data_rozpoczecia") or None
@@ -331,7 +342,14 @@ class VerificationService:
                 platnik_vat_czynny = False
             konta_mf: List[str] = []
         else:
-            status_vat = mf_data.get("status_vat") or "Niezarejestrowany"
+            raw_vat = mf_data.get("status_vat")
+            if not raw_vat or "brak w wykazie" in raw_vat.lower():
+                if ceidg_data.get("found"):
+                    status_vat = "Nie figuruje na Białej Liście (np. zwolniony z VAT / niebędący podatnikiem VAT)"
+                else:
+                    status_vat = raw_vat or "Niezarejestrowany"
+            else:
+                status_vat = raw_vat
             platnik_vat_czynny = bool(mf_data.get("platnik_vat", False))
             konta_mf = list(mf_data.get("rachunki_bankowe") or [])
 

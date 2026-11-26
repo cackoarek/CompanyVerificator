@@ -1,4 +1,4 @@
-"""Asynchroniczny klient Hurtowni Danych CEIDG v2 (dane.biznes.gov.pl)."""
+"""Asynchroniczny klient Hurtowni Danych CEIDG v3 (dane.biznes.gov.pl)."""
 
 import os
 from typing import Any, Dict, List, Optional
@@ -9,7 +9,31 @@ from src.config import CEIDG_API_TOKEN
 from src.core.validators import clean_nip
 from src.providers.base import http_request_with_retry
 
-CEIDG_API_URL = "https://dane.biznes.gov.pl/api/ceidg/v2/firmy"
+CEIDG_API_URL = "https://dane.biznes.gov.pl/api/ceidg/v3/firmy"
+
+
+def _format_ceidg_address(adres_obj: Optional[Dict[str, Any]]) -> Optional[str]:
+    """Formatuje obiekt adresu z CEIDG v3 do czytelnego ciągu tekstowego."""
+    if not adres_obj or not isinstance(adres_obj, dict):
+        return None
+    ulica = adres_obj.get("ulica") or ""
+    budynek = adres_obj.get("budynek") or ""
+    lokal = adres_obj.get("lokal")
+    kod = adres_obj.get("kod") or ""
+    miasto = adres_obj.get("miasto") or ""
+
+    parts = []
+    if ulica and budynek:
+        parts.append(f"{ulica} {budynek}" + (f"/{lokal}" if lokal else ""))
+    elif ulica:
+        parts.append(ulica)
+    elif budynek:
+        parts.append(f"bud. {budynek}" + (f"/{lokal}" if lokal else ""))
+
+    if kod or miasto:
+        parts.append(f"{kod} {miasto}".strip())
+
+    return ", ".join(parts) if parts else None
 
 
 async def fetch_ceidg_info(
@@ -17,7 +41,7 @@ async def fetch_ceidg_info(
     nip: str,
     api_token: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Pobiera dane JDG (status, data rozpoczęcia, kody PKD) z API CEIDG v2."""
+    """Pobiera dane JDG (status, nazwa, adres, REGON, kody PKD) z API CEIDG v3."""
     normalized_nip = clean_nip(nip)
     token = (api_token if api_token is not None else os.getenv("CEIDG_API_TOKEN", "").strip()) or CEIDG_API_TOKEN
 
@@ -35,7 +59,17 @@ async def fetch_ceidg_info(
             headers={"Authorization": f"Bearer {token}"},
         )
         if resp.status_code == 404:
+            # Sprawdź czy to 404 bramki API czy brak danych
+            text_resp = resp.text
+            if "No context-path" in text_resp:
+                return {
+                    "found": False,
+                    "configured": True,
+                    "blad_polaczenia": True,
+                    "komunikat_bledu": "CEIDG API Gateway 404 (nieprawidłowy context-path)",
+                }
             return {"found": False, "configured": True, "blad_polaczenia": False}
+
         if resp.status_code != 200:
             return {
                 "found": False,
@@ -49,12 +83,16 @@ async def fetch_ceidg_info(
         if not firmy:
             return {"found": False, "configured": True, "blad_polaczenia": False}
 
+        # Jeśli jest więcej niż 1 wpis (np. historyczne wykreślone JDG),
+        # preferujemy wpis AKTYWNY lub ZAWIESZONY
         wpis = firmy[0]
-        pkd_list: List[str] = list(wpis.get("pkd") or [])
-        pkd_glowny = wpis.get("pkdGlowny")
-        if pkd_glowny and pkd_glowny not in pkd_list:
-            pkd_list.insert(0, pkd_glowny)
+        for f in firmy:
+            st = (f.get("status") or "").upper()
+            if st in ("AKTYWNY", "ZAWIESZONY"):
+                wpis = f
+                break
 
+        # Dane bazowe z listy firm
         raw_status = (wpis.get("status") or "").upper()
         if "ZAWIESZ" in raw_status:
             status_rejestru = "ZAWIESZONY"
@@ -63,13 +101,63 @@ async def fetch_ceidg_info(
         else:
             status_rejestru = "AKTYWNY"
 
+        wlasciciel = wpis.get("wlasciciel") or {}
+        regon = wlasciciel.get("regon")
+        adres_str = _format_ceidg_address(wpis.get("adresDzialalnosci"))
+        data_rozpoczecia = wpis.get("dataRozpoczecia") or ""
+        nazwa = (wpis.get("nazwa") or "").strip()
+
+        # Sprawdź kody PKD bezpośrednio lub pobierz szczegóły z linku jeśli dostępne
+        pkd_list: List[str] = []
+        pkd_glowny: Optional[str] = None
+
+        if "pkd" in wpis or "pkdGlowny" in wpis:
+            raw_pkd = wpis.get("pkd") or []
+            for p in raw_pkd:
+                kod = p.get("kod") if isinstance(p, dict) else str(p)
+                if kod and kod not in pkd_list:
+                    pkd_list.append(kod)
+            glowny_raw = wpis.get("pkdGlowny")
+            pkd_glowny = glowny_raw.get("kod") if isinstance(glowny_raw, dict) else (str(glowny_raw) if glowny_raw else None)
+        elif wpis.get("link"):
+            # Pobierz szczegóły wpisu (kody PKD, dokładny adres)
+            try:
+                detail_resp = await http_request_with_retry(
+                    client,
+                    "GET",
+                    wpis["link"],
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+                if detail_resp.status_code == 200:
+                    detail_data = detail_resp.json()
+                    firma_list = detail_data.get("firma") or []
+                    if firma_list:
+                        f_detail = firma_list[0]
+                        wpis = {**wpis, **f_detail}
+                        raw_pkd = f_detail.get("pkd") or []
+                        for p in raw_pkd:
+                            kod = p.get("kod") if isinstance(p, dict) else str(p)
+                            if kod and kod not in pkd_list:
+                                pkd_list.append(kod)
+                        glowny_raw = f_detail.get("pkdGlowny")
+                        pkd_glowny = glowny_raw.get("kod") if isinstance(glowny_raw, dict) else (str(glowny_raw) if glowny_raw else None)
+                        if not adres_str:
+                            adres_str = _format_ceidg_address(f_detail.get("adresDzialalnosci"))
+            except Exception:
+                pass
+
+        if pkd_glowny and pkd_glowny not in pkd_list:
+            pkd_list.insert(0, pkd_glowny)
+
         return {
             "found": True,
             "configured": True,
             "nip": normalized_nip,
-            "nazwa": (wpis.get("nazwa") or "").strip(),
+            "nazwa": nazwa,
+            "regon": regon,
+            "adres": adres_str,
             "status_rejestru": status_rejestru,
-            "data_rozpoczecia": wpis.get("dataRozpoczecia") or "",
+            "data_rozpoczecia": data_rozpoczecia,
             "kody_pkd": pkd_list,
             "pkd_glowny": pkd_glowny,
             "blad_polaczenia": False,
