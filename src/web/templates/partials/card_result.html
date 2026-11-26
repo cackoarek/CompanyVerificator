@@ -273,6 +273,8 @@
             <span class="text-red-700 font-bold">⚠️ Zgłoszony w CRBR (WYKRYTO SANKCJE!)</span>
           {% elif karta.crbr_status == 'ZGODNY' %}
             <span class="text-emerald-700">✅ Zgłoszeni beneficjenci</span>
+          {% elif karta.crbr_status == 'ZWOLNIONY_USTAWOWO_GPW' %}
+            <span class="text-blue-700 font-bold">🏛️ Zwolniona ustawowo (GPW)</span>
           {% elif karta.crbr_status == 'BRAK_WPISU' %}
             <span class="text-amber-800">⚠️ Brak zgłoszenia w CRBR</span>
           {% elif karta.crbr_status == 'ROZBIEZNOSCI' %}
@@ -287,7 +289,20 @@
         </span>
       </div>
 
-      {% if karta.crbr_status == 'BRAK_WPISU' %}
+      {% if karta.crbr_status == 'ZWOLNIONY_USTAWOWO_GPW' %}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-blue-950 text-[11px] leading-relaxed space-y-1">
+          <div class="font-bold flex items-center gap-1 text-blue-900">
+            <span>🏛️</span>
+            <span>Spółka publiczna notowana na rynku regulowanym (GPW / NewConnect)</span>
+          </div>
+          <p>
+            Zgodnie z <strong>art. 58 ustawy AML</strong> spółki publiczne, których akcje są dopuszczone do obrotu na rynku regulowanym podlegającym wymogom ujawniania informacji zgodnie z prawem UE lub równoważnymi standardami międzynarodowymi, <strong>nie podlegają obowiązkowi zgłaszania beneficjentów rzeczywistych do CRBR</strong>.
+          </p>
+          <p class="text-blue-800 text-[10px]">
+            Podstawa prawna: Art. 58 oraz Art. 42 ust. 1 pkt 1 ustawy z dnia 1 marca 2018 r. o przeciwdziałaniu praniu pieniędzy (prawo do uproszczonych środków CDD/SDD).
+          </p>
+        </div>
+      {% elif karta.crbr_status == 'BRAK_WPISU' %}
         <p class="text-[11px] text-amber-800 pt-1 leading-relaxed">
           <strong>Wyjaśnienie:</strong> Ta spółka figuruje w KRS, lecz nie zgłosiła swoich właścicieli do rejestru Ministerstwa Finansów (CRBR).
           Zgodnie z ustawą AML spółki handlowe mają obowiązek ujawnienia osób kontrolujących pod rygorem kar pieniężnych do 1 mln zł. Wymaga to potwierdzenia tożsamości właścicieli przed podjęciem kluczowej współpracy.

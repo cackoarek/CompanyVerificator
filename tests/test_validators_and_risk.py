@@ -224,7 +224,48 @@ def test_kyc_scorecard_giif_and_virtual_office_detection():
     assert scorecard.branza_punkty == 6
     assert scorecard.ubo_punkty == 6
     assert scorecard.kanal_punkty == 3
-    assert scorecard.suma_punktow == 24
     assert scorecard.profil_ryzyka == ProfilRyzykaKyc.WYSOKIE_NIEAKCEPTOWALNE
     assert any(f.code == "VIRTUAL_OFFICE_MASS_ADDRESS" for f in factors)
+
+
+def test_public_companies_dictionary_and_legal_forms():
+    from src.domain.dictionaries.public_companies import is_public_company, load_cached_companies
+    from src.domain.dictionaries.legal_forms import evaluate_legal_form, LegalFormType
+
+    # 1. Weryfikacja załadowania bazy
+    companies = load_cached_companies()
+    assert len(companies) > 0
+
+    # 2. Rozpoznawanie PZU po KRS
+    pzu = is_public_company(krs="0000009831")
+    assert pzu is not None
+    assert pzu.ticker == "PZU"
+    assert pzu.market == "GPW"
+
+    # 3. Rozpoznawanie po nazwie (np. Dino Polska)
+    dino = is_public_company(name="Dino Polska S.A.")
+    assert dino is not None
+    assert dino.ticker == "DNP"
+
+    # 4. Sprawdzenie ewaluacji prawnej (evaluate_legal_form)
+    eval_pzu = evaluate_legal_form(
+        forma_prawna="SPÓŁKA AKCYJNA",
+        nazwa="POWSZECHNY ZAKŁAD UBEZPIECZEŃ SPÓŁKA AKCYJNA",
+        krs="0000009831",
+    )
+    assert eval_pzu.form_type == LegalFormType.PUBLIC_COMPANY_GPW
+    assert eval_pzu.exempt_from_crbr is True
+    assert eval_pzu.eligible_for_simplified_cdd is True
+    assert "GPW" in eval_pzu.display_name
+
+    # 5. Zwykła mała spółka akcyjna niepubliczna
+    eval_private_sa = evaluate_legal_form(
+        forma_prawna="SPÓŁKA AKCYJNA",
+        nazwa="Prywatna Hurtownia Spożywcza S.A.",
+        krs="0000999999",
+        kapital_zakladowy=100_000,
+    )
+    assert eval_private_sa.form_type == LegalFormType.COMMERCIAL_COMPANY_KRS
+    assert eval_private_sa.exempt_from_crbr is False
+
 

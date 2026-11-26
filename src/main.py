@@ -38,12 +38,19 @@ from src.web.routers import batch, history, how_it_works, sanctions, verify
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Inicjalizuje bazę SQLite, katalog audytów oraz referencyjne listy sankcyjne."""
+    """Inicjalizuje bazę SQLite, katalog audytów oraz referencyjne listy sankcyjne i spółek giełdowych."""
+    import asyncio
+    from src.domain.dictionaries.public_companies import sync_public_companies_from_web
+
     if not getattr(app.state, "db", None):
         app.state.db = Database(DB_PATH)
     if not getattr(app.state, "audits_dir", None):
         app.state.audits_dir = AUDITS_DIR
     seed_default_sanctions(app.state.db)
+
+    # Odświeżenie listy spółek giełdowych w tle (nie blokuje startu serwera)
+    asyncio.create_task(sync_public_companies_from_web(force=False))
+
     yield
 
 

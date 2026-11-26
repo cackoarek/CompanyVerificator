@@ -47,14 +47,18 @@ def evaluate_legal_form(
     nazwa_norm = (nazwa or "").upper().strip()
 
     # 1. Spółka Akcyjna - weryfikacja spółki publicznej / Skarbu Państwa (np. PZU, Orlen, KGHM)
+    from src.domain.dictionaries.public_companies import is_public_company
+
+    public_info = is_public_company(krs=krs, name=nazwa)
     is_sa = "SPÓŁKA AKCYJNA" in forma_norm or forma_norm == "SA" or " S.A." in nazwa_norm or " S.A" in nazwa_norm
-    if is_sa:
-        # Duży kapitał zakładowy (>= 5 mln zł) lub znana spółka giełdowa / udział SP
+
+    if public_info or is_sa:
         is_large_cap = (kapital_zakladowy or 0) >= 5_000_000
-        if is_large_cap or any(kw in nazwa_norm for kw in ("POWSZECHNY ZAKŁAD UBEZPIECZEŃ", "ORLEN", "PKO BANK POLSKI", "KGHM", "PGE", "TAURON")):
+        if public_info or is_large_cap or any(kw in nazwa_norm for kw in ("POWSZECHNY ZAKŁAD UBEZPIECZEŃ", "ORLEN", "PKO BANK POLSKI", "KGHM", "PGE", "TAURON")):
+            market_desc = f" ({public_info.market}: {public_info.ticker})" if public_info else " (rynek regulowany)"
             return LegalFormEvaluation(
                 form_type=LegalFormType.PUBLIC_COMPANY_GPW,
-                display_name="Spółka Akcyjna (publiczna / rynek regulowany)",
+                display_name=f"Spółka Akcyjna (publiczna{market_desc})",
                 exempt_from_crbr=True,
                 crbr_exemption_reason="Art. 58 ustawy AML: spółka publiczna notowana na rynku regulowanym nie podlega zgłoszeniu do CRBR",
                 eligible_for_simplified_cdd=True,
