@@ -46,6 +46,7 @@ def register_pdf_fonts() -> Tuple[str, str]:
             try:
                 pdfmetrics.registerFont(TTFont("DejaVuSans", str(p_reg)))
                 pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", str(p_bold)))
+                pdfmetrics.registerFontFamily("DejaVuSans", normal="DejaVuSans", bold="DejaVuSans-Bold")
                 return "DejaVuSans", "DejaVuSans-Bold"
             except Exception:
                 pass
@@ -158,7 +159,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
         AnalystStatus.AUTO: "#334155",
     }.get(card.analyst_status, "#334155")
 
-    analyst_display = f'<font color="{analyst_color}" size="8.5"><b>{_esc(card.analyst_status.label)}</b></font>'
+    analyst_display = f'<font color="{analyst_color}" name="{font_bold}" size="8.5"><b>{_esc(card.analyst_status.label)}</b></font>'
 
     decision_card = Table(
         [
