@@ -70,7 +70,7 @@
           Równoległe odpytanie
         </div>
         <p class="text-slate-600 leading-relaxed text-[11px]">
-          Asynchroniczne zapytania do oficjalnych API rejestrów państwowych (Biała Lista MF, KRS, CRBR, CEIDG, VIES) oraz synchronizowanej bazy sankcyjnej (MSWiA i UE).
+          Asynchroniczne zapytania do oficjalnych API rejestrów państwowych (Biała Lista MF, KRS, GUS BIR REGON, CRBR, CEIDG, VIES), bazy spółek publicznych (GPW / NewConnect) oraz synchronizowanej bazy sankcyjnej (MSWiA i UE).
         </p>
       </div>
 
@@ -183,6 +183,32 @@
         </div>
         <p class="text-slate-600 text-[11px] leading-relaxed">
           Dla kontrahentów z Unii Europejskiej weryfikuje ważność numeru VAT-UE w czasie rzeczywistym. Aktywny status VIES jest warunkiem koniecznym do bezpiecznego zastosowania stawki 0% VAT w transakcjach wewnątrzwspólnotowych (WDT).
+        </p>
+      </div>
+
+      <!-- GUS BIR REGON -->
+      <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="text-base">📊</span> Baza Internetowa REGON (GUS BIR 1.1 / 1.2)
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] bg-teal-100 text-teal-800 font-semibold">Główny Urząd Statystyczny</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          Zapewnia weryfikację podmiotów niefigurujących w rejestrach KRS/CEIDG (np. kluby sportowe, stowarzyszenia rejestrowane w ewidencji starosty, instytucje publiczne, fundacje) oraz stanowi niezależny, bezpieczny <strong>fallback w przypadku przerw technicznych KRS</strong> (pozyskiwanie numeru KRS, formy prawnej i adresu).
+        </p>
+      </div>
+
+      <!-- GPW / NewConnect -->
+      <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="text-base">📈</span> Giełda Papierów Wartościowych (GPW / NewConnect)
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] bg-violet-100 text-violet-800 font-semibold">Spółki publiczne &amp; SDD</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          Weryfikuje, czy badana spółka jest notowana na Głównym Rynku GPW lub w alternatywnym systemie NewConnect. Zgodnie z <strong>art. 58 ustawy AML</strong> spółki publiczne podlegające unijnym wymogom przejrzystości są <strong>zwolnione z obowiązku zgłaszania beneficjentów do CRBR</strong> (brak kary za brak wpisu). Ponadto na mocy <strong>art. 42 ust. 1 pkt 1 ustawy AML</strong> kwalifikują się one do stosowania uproszczonych środków należytej staranności (SDD).
         </p>
       </div>
 
@@ -539,6 +565,9 @@
         <div class="text-slate-600 leading-relaxed text-[11px] space-y-1">
           <p>
             • <strong>Spółki handlowe (Sp. z o.o., S.A., Prosta S.A., Spółki Jawne, Komandytowe):</strong> Mają ustawowy obowiązek zgłoszenia beneficjentów rzeczywistych w ciągu 14 dni od rejestracji. Brak wpisu skutkuje naliczeniem <strong>+30 pkt</strong> (Wysokie Ryzyko).
+          </p>
+          <p>
+            • <strong>Spółki publiczne notowane na GPW / NewConnect:</strong> Zgodnie z <strong>art. 58 ustawy AML</strong> spółki publiczne podlegające unijnym wymogom przejrzystości (lub równoważnym standardom państw trzecich) są <strong>ustawowo zwolnione z obowiązku zgłoszenia w CRBR</strong>. System automatycznie weryfikuje obecność spółki w rejestrze GPW/NewConnect i nadaje status <code>ZWOLNIONY_USTAWOWO_GPW</code> bez naliczania punktów karnych za brak wpisu w CRBR.
           </p>
           <p>
             • <strong>Jednoosobowe Działalności Gospodarcze (CEIDG):</strong> Osoby fizyczne prowadzące JDG co do zasady nie podlegają rejestracji w CRBR (beneficjentem jest sam przedsiębiorca). Status <code>BRAK_OBOWIAZKU_CRBR</code> nie powoduje doliczenia punktów ryzyka.
