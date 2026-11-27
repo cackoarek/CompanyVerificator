@@ -226,6 +226,52 @@ async def health_check():
     return {"status": "ok", "app": "CompanyVerificator", "version": __version__}
 
 
+@app.get("/login", response_class=HTMLResponse)
+async def login_get(request: Request):
+    """Zwraca formularz logowania do panelu."""
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    raw_redirect = request.query_params.get("redirect_url", "/")
+    safe_redirect = html.escape(raw_redirect if is_safe_redirect_url(raw_redirect) else "/", quote=True)
+    lockout_h = int(float(os.getenv("LOGIN_LOCKOUT_HOURS", str(LOGIN_LOCKOUT_HOURS))))
+
+    if is_ip_locked_out(client_ip):
+        app_logger.warning(f"Odrzucono żądanie do /login z zablokowanego IP: {client_ip}")
+        return HTMLResponse(
+            content=f"""<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><title>Blokada IP</title>
+            <script src="https://cdn.tailwindcss.com"></script></head>
+            <body class="bg-slate-50 flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white p-6 rounded-2xl border border-red-200 shadow-sm max-w-sm w-full text-center space-y-3">
+            <div class="text-3xl">🚫</div>
+            <h1 class="text-base font-bold text-slate-900">Dostęp tymczasowo zablokowany</h1>
+            <p class="text-xs text-slate-500">Przekroczono limit 5 nieudanych prób logowania z adresu <code>{client_ip}</code>. Kolejna próba możliwa za {lockout_h}h.</p>
+            </div></body></html>""",
+            status_code=429,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    return HTMLResponse(
+        content=f"""<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><title>Logowanie – CompanyVerificator</title>
+        <script src="https://cdn.tailwindcss.com"></script></head>
+        <body class="bg-slate-50 flex items-center justify-center min-h-screen p-4">
+        <form method="POST" action="/login" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-sm w-full space-y-4">
+        <div class="space-y-1">
+          <h1 class="text-base font-bold text-slate-900">🔒 Wymagane hasło dostępu</h1>
+          <p class="text-xs text-slate-500">Dostęp do panelu CompanyVerificator jest chroniony hasłem.</p>
+        </div>
+        <input type="hidden" name="redirect_url" value="{safe_redirect}">
+        <div>
+          <input type="password" name="password" required autofocus placeholder="Wpisz hasło dostępu" class="w-full px-3 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer">Odblokuj panel</button>
+        <div class="text-center pt-1 border-t border-slate-100">
+          <a href="/jak-to-dziala" class="text-[11px] text-blue-600 hover:underline">💡 Zobacz jak działa system i ocena ryzyka (bez logowania)</a>
+        </div>
+        </form></body></html>""",
+        status_code=200,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.post("/login")
 async def login_post(request: Request):
     client_ip = request.client.host if request.client else "127.0.0.1"

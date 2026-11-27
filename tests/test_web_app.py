@@ -114,6 +114,12 @@ def test_csrf_and_token_auth_hardening(tmp_path: Path, monkeypatch):
     unauth = client.get("/")
     assert unauth.status_code == 401
 
+    # Test bezpośredniego wejścia GET na /login
+    login_page = client.get("/login?redirect_url=/karta/123")
+    assert login_page.status_code == 200
+    assert "Wymagane hasło dostępu" in login_page.text
+    assert 'value="/karta/123"' in login_page.text
+
     login_ok = client.post("/login", data={"token": "super-secret-compliance-token-123456", "redirect_url": "//evil.com"}, follow_redirects=False)
     assert login_ok.status_code == 303
     # Open Redirect prevention -> przekierowanie na '/' zamiast '//evil.com'
