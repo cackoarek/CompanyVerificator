@@ -289,6 +289,17 @@ class VerificationService:
                     if krs_data.get("blad_polaczenia"):
                         niekompletne_zrodla.append("KRS")
                         komunikaty_bledow.append(krs_data.get("komunikat_bledu", "Błąd KRS"))
+                        # Jeśli KRS jest niedostępny (np. przerwa techniczna), a nie mamy jeszcze GUS BIR, pobierzmy dane z REGON GUS
+                        if not gus_data and (nip or krs):
+                            try:
+                                gus_client = GusBirClient()
+                                if gus_client.enabled:
+                                    gus_data = await gus_client.search_entity(http_client, nip=nip, krs=krs)
+                                    if gus_data:
+                                        raw_evidence["gus_bir"] = gus_data
+                                        app_logger.info(f"KRS niedostępny – pobrano dane awaryjne z GUS BIR dla NIP {nip} / KRS {krs}")
+                            except Exception as exc_gus:
+                                app_logger.debug(f"Błąd fallbacku GUS BIR przy awarii KRS: {exc_gus}")
                     idx += 1
                 if nip and idx < len(results):
                     crbr_data = results[idx]
@@ -355,8 +366,8 @@ class VerificationService:
             else:
                 status_rejestru = "AKTYWNY"
         elif krs or krs_data.get("found"):
-            forma_prawna = krs_data.get("forma_prawna") or "SPÓŁKA HANDLOWA (KRS)"
-            zrodlo_rejestru = "KRS (api-krs.ms.gov.pl) / Biała Lista MF"
+            forma_prawna = krs_data.get("forma_prawna") or (gus_data.get("forma_prawna") if gus_data else None) or "SPÓŁKA HANDLOWA (KRS)"
+            zrodlo_rejestru = "KRS (api-krs.ms.gov.pl) / Biała Lista MF" if not krs_data.get("blad_polaczenia") else ("GUS REGON / Biała Lista MF (KRS niedostępny)" if gus_data else "Biała Lista MF (KRS niedostępny)")
             reprezentacja = list(krs_data.get("reprezentacja") or [])
             beneficjenci = list(crbr_data.get("beneficjenci") or [])
             benef_details = crbr_data.get("beneficjenci_details") or []

@@ -175,8 +175,26 @@ async def fetch_krs_odpis(client: httpx.AsyncClient, krs: str) -> Dict[str, Any]
         try:
             resp = await http_request_with_retry(client, "GET", url)
             if resp.status_code == 200:
-                data = resp.json()
-                return parse_krs_odpis(data, normalized_krs)
+                content_type = (resp.headers.get("content-type") or "").lower()
+                text_strip = resp.text.strip()
+                # Zabezpieczenie przed przerwą techniczną / stroną HTML zwracaną przez api-krs z kodem 200
+                if "text/html" in content_type or text_strip.startswith("<") or "przerwa techniczna" in text_strip.lower():
+                    return {
+                        "found": False,
+                        "krs": normalized_krs,
+                        "blad_polaczenia": True,
+                        "komunikat_bledu": "KRS: Przerwa techniczna serwisu Ministerstwa Sprawiedliwości (HTML)",
+                    }
+                try:
+                    data = resp.json()
+                    return parse_krs_odpis(data, normalized_krs)
+                except ValueError as json_err:
+                    return {
+                        "found": False,
+                        "krs": normalized_krs,
+                        "blad_polaczenia": True,
+                        "komunikat_bledu": f"KRS: Nieprawidłowa odpowiedź serwisu (błąd parsowania danych: {json_err})",
+                    }
             if resp.status_code == 404:
                 continue
             return {
