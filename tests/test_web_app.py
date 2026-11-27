@@ -257,3 +257,57 @@ def test_signed_session_tokens_and_security_hardening(tmp_path: Path, monkeypatc
     assert "max-age=31536000" in resp.headers["Strict-Transport-Security"]
 
 
+def test_public_audit_reports_access(tmp_path: Path, monkeypatch):
+    """Testuje publiczny dostęp (GET /karta/{id}) bez logowania gdy PUBLIC_AUDIT_REPORTS=true."""
+    client = _make_client(tmp_path, monkeypatch)
+    db = client.app.state.db
+
+    # Zapisz testową kartę
+    card_dict = {
+        "id": "audit-uuid-12345",
+        "identifier": "5260251049",
+        "identifier_kind": "NIP",
+        "nazwa": "Powszechny Zakład Ubezpieczeń SA",
+        "poziom_ryzyka": "NISKIE",
+        "decyzja": "AKCEPTACJA",
+        "analyst_status": "AUTO",
+        "status_vat": "Czynny",
+        "status_rachunku": "NIE_PODANO",
+        "blad_polaczenia": False,
+        "sankcje_hit": False,
+        "status_pep": False,
+        "sha256_hash": "c"*64,
+        "card_json": '{"id": "audit-uuid-12345", "identifier": "5260251049", "identifier_kind": "NIP", "nazwa": "Powszechny Zakład Ubezpieczeń SA", "nip": "5260251049", "poziom_ryzyka": "NISKIE", "decyzja": "AKCEPTACJA", "analyst_status": "AUTO", "uzasadnienie_decyzji": "OK", "data_weryfikacji": "2026-11-27T20:00:00Z"}',
+        "created_at": "2026-11-27T20:00:00Z",
+    }
+    db.save_verification(card_dict)
+
+    # Ustaw hasło WEB_PASSWORD
+    monkeypatch.setattr("src.main.WEB_PASSWORD", "Tajne123")
+    monkeypatch.setenv("WEB_PASSWORD", "Tajne123")
+
+    # 1. Gdy PUBLIC_AUDIT_REPORTS=false -> /karta/audit-uuid-12345 wymaga hasła (401)
+    monkeypatch.setenv("PUBLIC_AUDIT_REPORTS", "false")
+    monkeypatch.setattr("src.main.PUBLIC_AUDIT_REPORTS", False)
+    resp = client.get("/karta/audit-uuid-12345", headers={"accept": "text/html"})
+    assert resp.status_code == 401
+
+    # 2. Gdy PUBLIC_AUDIT_REPORTS=true -> /karta/audit-uuid-12345 jest dostępny publicznie (200)
+    monkeypatch.setenv("PUBLIC_AUDIT_REPORTS", "true")
+    monkeypatch.setattr("src.main.PUBLIC_AUDIT_REPORTS", True)
+    resp_pub = client.get("/karta/audit-uuid-12345", headers={"accept": "text/html"})
+    assert resp_pub.status_code == 200
+    assert "Powszechny Zakład Ubezpieczeń SA" in resp_pub.text
+    # Sprawdź, czy formularz decyzji jest zablokowany (tryb read-only)
+    assert "Podgląd tylko do odczytu" in resp_pub.text
+    assert "Zmiana statusu decyzji i dodawanie notatek audytowych wymaga logowania" in resp_pub.text
+
+    # 3. Zapis decyzji (POST /karta/.../decision) nadal wymaga logowania (401)
+    resp_post = client.post("/karta/audit-uuid-12345/decision", data={"analyst_status": "REJECTED"})
+    assert resp_post.status_code == 401
+
+    # 4. Inne strony (np. /, /historia, /wsadowa) nadal wymagają logowania (401)
+    assert client.get("/", headers={"accept": "text/html"}).status_code == 401
+    assert client.get("/historia", headers={"accept": "text/html"}).status_code == 401
+
+

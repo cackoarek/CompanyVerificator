@@ -56,6 +56,37 @@ def verify_session_token(token: str, secret: str, max_age: float = DEFAULT_SESSI
     return secrets.compare_digest(received_sig, expected_sig)
 
 
+def is_request_authenticated(request: Request) -> bool:
+    """Sprawdza, czy bieżące żądanie posiada uwierzytelnioną sesję użytkownika / analityka."""
+    from src.config import ACCESS_TOKEN, COOKIE_AUTH_TOKEN, WEB_PASSWORD
+
+    required_web_pass = os.getenv("WEB_PASSWORD", "").strip() or WEB_PASSWORD
+    required_token = os.getenv("CV_ACCESS_TOKEN", "").strip() or ACCESS_TOKEN
+
+    # Jeśli nie ustawiono ani hasła ani tokena, dostęp jest w pełni otwarty
+    if not required_web_pass and not required_token:
+        return True
+
+    if required_web_pass:
+        cookie_val = request.cookies.get(COOKIE_AUTH_TOKEN, "")
+        return bool(cookie_val and verify_session_token(cookie_val, required_web_pass))
+
+    if required_token:
+        token_candidate = None
+        auth_header = request.headers.get("authorization", "")
+        if auth_header:
+            token_candidate = auth_header.split()[-1]
+        if not token_candidate:
+            token_candidate = request.cookies.get(COOKIE_AUTH_TOKEN) or request.headers.get("x-access-token")
+        if token_candidate:
+            return bool(
+                secrets.compare_digest(token_candidate, required_token)
+                or verify_session_token(token_candidate, required_token)
+            )
+
+    return False
+
+
 def get_lockout_seconds() -> float:
     from src.config import LOGIN_LOCKOUT_HOURS
     try:

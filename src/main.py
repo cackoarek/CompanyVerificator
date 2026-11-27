@@ -20,6 +20,7 @@ from src.config import (
     DEFAULT_HOST,
     DEFAULT_PORT,
     LOGIN_LOCKOUT_HOURS,
+    PUBLIC_AUDIT_REPORTS,
     STATIC_DIR,
     WEB_PASSWORD,
 )
@@ -109,9 +110,14 @@ async def optional_token_auth_middleware(request: Request, call_next):
     """
     required_web_pass = os.getenv("WEB_PASSWORD", "").strip() or WEB_PASSWORD
     required_token = os.getenv("CV_ACCESS_TOKEN", "").strip() or ACCESS_TOKEN
+    allow_public_reports = os.getenv("PUBLIC_AUDIT_REPORTS", str(PUBLIC_AUDIT_REPORTS)).strip().lower() in ("1", "true", "yes")
 
     path = request.url.path
     if path.startswith("/static") or path in ("/health", "/favicon.ico", "/login", "/logout", "/jak-to-dziala"):
+        return await call_next(request)
+
+    # Opcjonalny dostęp publiczny do pojedynczych kart audytowych (tylko odczyt: GET /karta/{uuid}, PDF, JSON, MD)
+    if allow_public_reports and request.method == "GET" and path.startswith("/karta/") and not path.endswith("/decision"):
         return await call_next(request)
 
     # 1. Sprawdzenie WEB_PASSWORD

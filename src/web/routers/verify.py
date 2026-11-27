@@ -80,6 +80,7 @@ async def verify_single_company(
         "request": request,
         "karta": card,
         "audit_events": audit_svc.get_audit_history(card.id),
+        "is_authenticated": True,
     }
     return templates.TemplateResponse(request=request, name="partials/card_result.html", context=ctx)
 
@@ -133,6 +134,7 @@ async def update_card_decision(
         "karta": card,
         "audit_events": audit_svc.get_audit_history(verification_id),
         "decision_error": error_msg,
+        "is_authenticated": True,
     }
     return templates.TemplateResponse(request=request, name="partials/card_result.html", context=ctx)
 

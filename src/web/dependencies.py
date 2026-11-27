@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from src.config import ALLOW_DELETION, APP_TIMEZONE, AUDITS_DIR, TEMPLATES_DIR
 from src.core.database import Database
+from src.core.security import is_request_authenticated
 from src.services.audit_service import AuditService
 from src.services.batch_service import BatchService
 from src.services.verification_service import VerificationService
@@ -126,4 +127,5 @@ def base_context(request: Request, active_tab: str) -> Dict[str, Any]:
         "sanctions_counts": db.count_sanctions_by_source(),
         "allow_deletion": ALLOW_DELETION,
         "dict_issues": dict_issues,
+        "is_authenticated": is_request_authenticated(request),
     }

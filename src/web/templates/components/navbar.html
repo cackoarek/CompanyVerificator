@@ -30,6 +30,7 @@
 
       <!-- Nawigacja Desktop -->
       <nav class="hidden md:flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+        {% if is_authenticated %}
         <a href="/"
            class="px-3 py-1.5 rounded-lg transition-colors {% if active_tab == 'verify' %}bg-blue-600 text-white shadow-xs{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
           🔍 Weryfikacja firmy
@@ -46,10 +47,23 @@
            class="px-3 py-1.5 rounded-lg transition-colors {% if active_tab == 'registries' %}bg-blue-600 text-white shadow-xs{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
           🏛️ Rejestry i sankcje
         </a>
+        {% endif %}
         <a href="/jak-to-dziala"
            class="px-3 py-1.5 rounded-lg transition-colors {% if active_tab == 'how_it_works' %}bg-blue-600 text-white shadow-xs{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
           💡 Jak to działa
         </a>
+        {% if not is_authenticated %}
+        <a href="/login"
+           class="ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors shadow-xs">
+          🔒 Zaloguj się
+        </a>
+        {% else %}
+        <a href="/logout"
+           title="Wyloguj się z panelu"
+           class="ml-2 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+          🚪
+        </a>
+        {% endif %}
       </nav>
     </div>
 
@@ -58,6 +72,7 @@
          x-show="mobileMenuOpen"
          x-transition
          style="display: none;">
+      {% if is_authenticated %}
       <a href="/"
          class="block px-3 py-2 rounded-lg transition-colors {% if active_tab == 'verify' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         🔍 Weryfikacja firmy
@@ -74,10 +89,22 @@
          class="block px-3 py-2 rounded-lg transition-colors {% if active_tab == 'registries' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         🏛️ Rejestry i sankcje
       </a>
+      {% endif %}
       <a href="/jak-to-dziala"
          class="block px-3 py-2 rounded-lg transition-colors {% if active_tab == 'how_it_works' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         💡 Jak to działa
       </a>
+      {% if not is_authenticated %}
+      <a href="/login"
+         class="block px-3 py-2 rounded-lg bg-blue-600 text-white text-center font-bold">
+        🔒 Zaloguj się
+      </a>
+      {% else %}
+      <a href="/logout"
+         class="block px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white">
+        🚪 Wyloguj się
+      </a>
+      {% endif %}
     </div>
   </div>
 </header>

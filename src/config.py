@@ -38,6 +38,9 @@ ACCESS_TOKEN = os.getenv("CV_ACCESS_TOKEN", "").strip()
 WEB_PASSWORD = os.getenv("WEB_PASSWORD", "").strip()
 LOGIN_LOCKOUT_HOURS = float(os.getenv("LOGIN_LOCKOUT_HOURS", "5"))
 
+# Zezwolenie na publiczny dostęp do raportów audytu (GET /karta/{uuid}, PDF, JSON) bez logowania
+PUBLIC_AUDIT_REPORTS = os.getenv("PUBLIC_AUDIT_REPORTS", "false").lower() in ("1", "true", "yes")
+
 CEIDG_API_TOKEN = os.getenv("CEIDG_API_TOKEN", "").strip()
 CACHE_TTL_HOURS = int(os.getenv("CV_CACHE_TTL_HOURS", "24"))
 HTTP_TIMEOUT_SECONDS = float(os.getenv("CV_HTTP_TIMEOUT_SECONDS", "8.0"))
