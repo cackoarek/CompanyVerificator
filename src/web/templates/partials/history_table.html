@@ -80,4 +80,52 @@
       Brak zapisanych weryfikacji spełniających kryteria.
     </div>
   {% endif %}
+
+  <!-- Pasek paginacji (tylko w pełnym rejestrze / gdy zdefiniowano total_pages) -->
+  {% if total_pages is defined and total_count > 0 %}
+  <div class="bg-slate-50 border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+    <div>
+      Pokazuję <strong>{{ start_record }}</strong>–<strong>{{ end_record }}</strong> z <strong>{{ total_count }}</strong> weryfikacji
+      (strona <strong>{{ page }}</strong> z <strong>{{ total_pages }}</strong>)
+    </div>
+
+    <div class="flex items-center space-x-1.5">
+      {% if has_prev %}
+      <button type="button"
+              onclick="document.getElementById('history-page-input').value = '1'; htmx.trigger('#history-filter-form', 'submit')"
+              class="px-2.5 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold cursor-pointer"
+              title="Pierwsza strona">
+        &laquo; Pierwsza
+      </button>
+      <button type="button"
+              onclick="document.getElementById('history-page-input').value = '{{ prev_page }}'; htmx.trigger('#history-filter-form', 'submit')"
+              class="px-2.5 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold cursor-pointer">
+        &lsaquo; Poprzednia
+      </button>
+      {% else %}
+      <span class="px-2.5 py-1 rounded bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed">&lsaquo; Poprzednia</span>
+      {% endif %}
+
+      <span class="px-3 py-1 font-bold text-slate-800 bg-white border border-slate-300 rounded">
+        {{ page }} / {{ total_pages }}
+      </span>
+
+      {% if has_next %}
+      <button type="button"
+              onclick="document.getElementById('history-page-input').value = '{{ next_page }}'; htmx.trigger('#history-filter-form', 'submit')"
+              class="px-2.5 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold cursor-pointer">
+        Następna &rsaquo;
+      </button>
+      <button type="button"
+              onclick="document.getElementById('history-page-input').value = '{{ total_pages }}'; htmx.trigger('#history-filter-form', 'submit')"
+              class="px-2.5 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold cursor-pointer"
+              title="Ostatnia strona">
+        Ostatnia &raquo;
+      </button>
+      {% else %}
+      <span class="px-2.5 py-1 rounded bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed">Następna &rsaquo;</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>

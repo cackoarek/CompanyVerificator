@@ -224,6 +224,32 @@ class Database:
             rows = conn.execute(sql, params).fetchall()
             return [dict(r) for r in rows]
 
+    def count_verifications(
+        self,
+        query: Optional[str] = None,
+        risk_level: Optional[str] = None,
+        offline_only: bool = False,
+        batch_id: Optional[str] = None,
+    ) -> int:
+        sql = "SELECT COUNT(*) FROM verifications WHERE 1=1"
+        params: List[Any] = []
+        if query and query.strip():
+            like = f"%{query.strip()}%"
+            sql += " AND (identifier LIKE ? OR nip LIKE ? OR krs LIKE ? OR nazwa LIKE ?)"
+            params.extend([like, like, like, like])
+        if risk_level and risk_level.strip():
+            sql += " AND poziom_ryzyka = ?"
+            params.append(risk_level.strip())
+        if offline_only:
+            sql += " AND blad_polaczenia = 1"
+        if batch_id:
+            sql += " AND batch_id = ?"
+            params.append(batch_id)
+
+        with self.connect() as conn:
+            row = conn.execute(sql, params).fetchone()
+            return int(row[0]) if row else 0
+
     def delete_verification(self, verification_id: str) -> bool:
         """Usuwa pojedynczą weryfikację oraz powiązane zdarzenia audytowe."""
         with self.connect() as conn:
