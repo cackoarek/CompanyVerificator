@@ -235,10 +235,11 @@
 
     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
       <span class="text-[10px] font-bold uppercase text-slate-400 block">3. Rachunek (art. 22p PIT)</span>
-      <div class="font-bold {% if karta.status_rachunku.value == 'ZGODNY_BIALA_LISTA' %}text-emerald-700{% elif karta.status_rachunku.value == 'BRAK_NA_BIALEJ_LISCIE' %}text-red-700{% elif karta.status_rachunku.value == 'BLAD_POLACZENIA_MF' %}text-amber-700{% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.platnik_vat_czynny and not karta.rachunki_zgloszone_mf %}text-amber-700{% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.rachunki_zgloszone_mf %}text-emerald-700{% else %}text-slate-600{% endif %}">
+      <div class="font-bold {% if karta.status_rachunku.value == 'ZGODNY_BIALA_LISTA' %}text-emerald-700{% elif karta.status_rachunku.value == 'BRAK_NA_BIALEJ_LISCIE' %}text-red-700{% elif karta.status_rachunku.value == 'BLAD_POLACZENIA_MF' %}text-amber-700{% elif '96 ust. 7ba' in (karta.status_vat|lower) or 'grupa vat' in (karta.status_vat|lower) %}text-blue-700{% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.platnik_vat_czynny and not karta.rachunki_zgloszone_mf %}text-amber-700{% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.rachunki_zgloszone_mf %}text-emerald-700{% else %}text-slate-600{% endif %}">
         {% if karta.status_rachunku.value == 'ZGODNY_BIALA_LISTA' %}✅ Zgodny — rachunek w wykazie MF
         {% elif karta.status_rachunku.value == 'BRAK_NA_BIALEJ_LISCIE' %}🚫 Brak na Białej Liście MF
         {% elif karta.status_rachunku.value == 'BLAD_POLACZENIA_MF' %}⚠️ Nie zweryfikowano — MF chwilowo niedostępny
+        {% elif '96 ust. 7ba' in (karta.status_vat|lower) or 'grupa vat' in (karta.status_vat|lower) %}🏛️ Rozliczenie w Grupie VAT
         {% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.platnik_vat_czynny and not karta.rachunki_zgloszone_mf %}⚠️ Brak kont w wykazie MF!
         {% elif karta.status_rachunku.value == 'NIE_PODANO' and karta.rachunki_zgloszone_mf %}📋 W wykazie: {{ karta.rachunki_zgloszone_mf|length }} kont(a)
         {% elif karta.status_rachunku.value == 'NIE_PODANO' %}— Nie podano numeru rachunku
@@ -247,6 +248,7 @@
       </div>
       <p class="text-[11px] text-slate-500 font-mono truncate">
         {% if karta.zweryfikowany_rachunek %}{{ karta.zweryfikowany_rachunek }}
+        {% elif '96 ust. 7ba' in (karta.status_vat|lower) or 'grupa vat' in (karta.status_vat|lower) %}Konta rejestrowane na NIP Grupy VAT
         {% elif karta.rachunki_zgloszone_mf %}Zgłoszone konta poniżej
         {% else %}Brak kont w MF{% endif %}
       </p>
@@ -450,6 +452,17 @@
       </button>
     </div>
     {% endif %}
+  </div>
+  {% elif '96 ust. 7ba' in (karta.status_vat|lower) or 'grupa vat' in (karta.status_vat|lower) %}
+  <div class="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-950 space-y-1">
+    <div class="font-bold flex items-center gap-1.5 text-blue-900">
+      <span>🏛️</span>
+      <span>Podmiot rozlicza podatek VAT w ramach Grupy VAT (art. 96 ust. 7ba ustawy o VAT)</span>
+    </div>
+    <p class="text-[11px] text-blue-900 leading-relaxed">
+      Spółka jest członkiem zarejestrowanej Grupy VAT, która jest odrębnym podatnikiem podatku od towarów i usług. 
+      Brak indywidualnie przypisanych rachunków bankowych na Białej Liście pod tym NIP-em jest <strong>stanem naturalnym i zgodnym z prawem</strong> — oficjalne rachunki rozliczeniowe i zgłoszenia VAT dokonywane są na poziomie NIP-u Grupy VAT.
+    </p>
   </div>
   {% elif karta.platnik_vat_czynny and not karta.zweryfikowany_rachunek and not karta.is_foreign %}
   <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
