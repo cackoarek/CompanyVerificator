@@ -22,6 +22,7 @@ from src.providers.sanctions.sync_service import (
     seed_default_sanctions,
     sync_all_sanctions,
     sync_eu_sanctions,
+    sync_knf_warnings,
     sync_mswia_sanctions,
 )
 
@@ -79,7 +80,15 @@ class DictionarySyncManager:
         eu_has_error = eu_status == "ERROR"
         eu_stale = eu_age_h is None or eu_age_h > SANCTIONS_TTL_HOURS or eu_has_error
 
-        # 3. Spółki publiczne GPW / NewConnect
+        # 3. Lista Ostrzeżeń Publicznych KNF
+        knf_log = last_syncs.get("KNF")
+        knf_dt = _parse_iso(knf_log["synced_at"]) if knf_log else None
+        knf_age_h = (now - knf_dt).total_seconds() / 3600.0 if knf_dt else None
+        knf_status = knf_log["status"] if knf_log else "NEVER_SYNCED"
+        knf_has_error = knf_status == "ERROR"
+        knf_stale = knf_age_h is None or knf_age_h > SANCTIONS_TTL_HOURS or knf_has_error
+
+        # 4. Spółki publiczne GPW / NewConnect
         gpw_sync_dt = _parse_iso(gpw_stats.get("last_sync_iso"))
         if not gpw_sync_dt and gpw_stats.get("last_sync") and gpw_stats.get("last_sync") != "Brak":
             try:
@@ -115,6 +124,19 @@ class DictionarySyncManager:
                 "error_message": eu_log.get("message") if eu_has_error else None,
                 "count": counts.get("EU", 0),
                 "last_synced_at": eu_log["synced_at"] if eu_log else None,
+            },
+            {
+                "id": "KNF",
+                "name": "Lista Ostrzeżeń Publicznych KNF",
+                "category": "OSTRZEŻENIA / FRAUD",
+                "source_url": "knf.gov.pl (Komisja Nadzoru Finansowego)",
+                "ttl_desc": "Codziennie (co 24h)",
+                "is_stale": knf_stale,
+                "status": knf_status,
+                "has_error": knf_has_error,
+                "error_message": knf_log.get("message") if knf_has_error else None,
+                "count": counts.get("KNF", 0),
+                "last_synced_at": knf_log["synced_at"] if knf_log else None,
             },
             {
                 "id": "PUBLIC_COMPANIES",
@@ -211,6 +233,17 @@ class DictionarySyncManager:
                 except Exception as e:
                     logger.error(f"DictionarySync: Wyjątek UE: {e}")
                     results.append({"source": "EU", "status": "ERROR", "count": 0, "message": str(e)})
+
+            # KNF
+            knf_status = statuses.get("KNF", {})
+            if force or knf_status.get("is_stale"):
+                logger.info("DictionarySync: Aktualizacja Listy Ostrzeżeń Publicznych KNF...")
+                try:
+                    res_knf = await sync_knf_warnings(client, self.db)
+                    results.append(res_knf)
+                except Exception as e:
+                    logger.error(f"DictionarySync: Wyjątek KNF: {e}")
+                    results.append({"source": "KNF", "status": "ERROR", "count": 0, "message": str(e)})
 
         return results
 

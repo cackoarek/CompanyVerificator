@@ -18,9 +18,9 @@ def render_card_markdown(card: VerificationCard) -> str:
         "BLAD_POLACZENIA": "⚠️ Błąd połączenia z rejestrem",
     }.get(card.status_rejestru, card.status_rejestru)
 
-    has_sanctions = bool(card.sankcje_mswia or card.sankcje_ue or card.sankcje_inne)
+    has_sanctions = bool(card.sankcje_mswia or card.sankcje_ue or card.sankcje_knf or card.sankcje_inne)
     crbr_badge = {
-        "ZGODNY": "⚠️ Zgłoszony w CRBR (WYKRYTO SANKCJE!)" if has_sanctions else "✅ Zgodny z rejestrem CRBR",
+        "ZGODNY": "⚠️ Zgłoszony w CRBR (WYKRYTO SANKCJE / KNF!)" if has_sanctions else "✅ Zgodny z rejestrem CRBR",
         "BRAK_WPISU": "⚠️ Brak wpisu w CRBR",
         "ROZBIEZNOSCI": "⚠️ Wykryto rozbieżności z KRS",
         "NIE_DOTYCZY": "ℹ️ Nie dotyczy (JDG)",
@@ -30,6 +30,7 @@ def render_card_markdown(card: VerificationCard) -> str:
 
     mswia_badge = "🚨 FIGURUJE NA LIŚCIE SANKCYJNEJ (STOP!)" if card.sankcje_mswia else "✅ Brak na liście MSWiA"
     ue_badge = "🚨 FIGURUJE NA LIŚCIE SANKCYJNEJ (STOP!)" if card.sankcje_ue else "✅ Brak na liście UE"
+    knf_badge = "🚨 FIGURUJE NA LIŚCIE OSTRZEŻEŃ KNF (STOP!)" if card.sankcje_knf else "✅ Brak na liście ostrzeżeń KNF"
 
     rachunek_badge = {
         StatusRachunkuBankowego.ZGODNY_BIALA_LISTA: "✅ Potwierdzony na Białej Liście VAT (MF)",
@@ -117,6 +118,7 @@ def render_card_markdown(card: VerificationCard) -> str:
         [
             f"* **Lista sankcyjna MSWiA:** {mswia_badge}",
             f"* **Lista sankcyjna UE:** {ue_badge}",
+            f"* **Lista Ostrzeżeń Publicznych KNF:** {knf_badge}",
         ]
     )
 

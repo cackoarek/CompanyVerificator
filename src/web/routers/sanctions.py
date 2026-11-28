@@ -163,6 +163,7 @@ async def view_sanction_entries_modal(request: Request, source: str):
         "LOCAL_SEED": "Baza startowa podmiotów sankcyjnych",
         "MSWIA": "Polska lista sankcyjna MSWiA",
         "EU": "Unijna lista sankcyjna UE (FSF)",
+        "KNF": "Lista Ostrzeżeń Publicznych KNF",
     }
     entries = db.list_sanction_entries(source=source_upper, limit=100)
     return templates.TemplateResponse(

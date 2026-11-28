@@ -7,11 +7,12 @@ from typing import Any, Dict, List
 
 import httpx
 
+from src.config import KNF_WARNINGS_URL
 from src.core.database import Database
 from src.providers.base import http_request_with_retry
 from src.providers.sanctions.matcher import normalize_name
 
-# Oficjalne źródła list sankcyjnych
+# Oficjalne źródła list sankcyjnych i ostrzeżeń
 MSWIA_SANCTIONS_URL = "https://www.gov.pl/web/mswia/lista-osob-i-podmiotow-objetych-sankcjami"
 EU_SANCTIONS_XML_URL = "https://webgate.ec.europa.eu/fsd/fsf/public/files/xmlFullSanctionsList_1_1/content?token=dG9rZW4tMjAxNw"
 
@@ -233,9 +234,99 @@ async def sync_mswia_sanctions(client: httpx.AsyncClient, db: Database) -> Dict[
         return {"source": "MSWIA", "status": "ERROR", "count": 0, "message": msg}
 
 
+def parse_knf_html(html_content: str) -> List[Dict[str, Any]]:
+    """Parsuje oficjalną Listę Ostrzeżeń Publicznych KNF ze strony knf.gov.pl."""
+    entries: List[Dict[str, Any]] = []
+    rows = re.findall(r"<tr[^>]*>(.*?)</tr>", html_content, flags=re.IGNORECASE | re.DOTALL)
+    for row in rows:
+        cells = re.findall(r"<td[^>]*>(.*?)</td>", row, flags=re.IGNORECASE | re.DOTALL)
+        if len(cells) < 3:
+            continue
+        clean_cells = [html_lib.unescape(re.sub(r"<[^>]+>", " ", c)).strip() for c in cells]
+        clean_cells = [re.sub(r"\s+", " ", c) for c in clean_cells]
+
+        # cells: [lp, nazwa, identyfikatory, prokuratura, wzmianki, info]
+        name_raw = clean_cells[1] if len(clean_cells) > 1 else ""
+        id_raw = clean_cells[2] if len(clean_cells) > 2 else ""
+        prosecutor = clean_cells[3] if len(clean_cells) > 3 else ""
+        info = clean_cells[5] if len(clean_cells) > 5 else ""
+
+        if not name_raw or len(name_raw) < 2:
+            continue
+
+        nip_m = re.search(r"\bNIP[:\s]*([0-9]{10})\b", id_raw, flags=re.IGNORECASE) or re.search(r"\b([0-9]{10})\b", id_raw)
+        krs_m = re.search(r"\bKRS[:\s]*([0-9]{10})\b", id_raw, flags=re.IGNORECASE)
+
+        # Oczyszczenie nazwy podmiotu z numeracji wiersza typu '1. '
+        name_clean = re.sub(r"^\d+\.\s*", "", name_raw).strip()
+
+        reason_parts = []
+        if info and info != "-":
+            reason_parts.append(info)
+        if prosecutor and prosecutor != "-":
+            reason_parts.append(f"Właściwa: {prosecutor}")
+        reason = " • ".join(reason_parts) or "Lista Ostrzeżeń Publicznych KNF (art. 6b ustawy o nadzorze)"
+
+        is_company = any(
+            kw in name_clean.lower()
+            for kw in ("sp.", "spółka", "s.a.", "sa", "z o.o.", "ltd", "inc", "corp", "bank", "fundusz", "holding", "coop")
+        )
+        entry_type = "ENTITY" if (is_company or nip_m or krs_m) else "PERSON"
+
+        entries.append(
+            {
+                "entry_type": entry_type,
+                "name": name_clean[:250],
+                "normalized_name": normalize_name(name_clean),
+                "nip": nip_m.group(1) if nip_m else None,
+                "krs": krs_m.group(1) if krs_m else None,
+                "aliases": [],
+                "reason": reason[:500],
+                "listed_at": "",
+            }
+        )
+
+    return entries
+
+
+async def sync_knf_warnings(client: httpx.AsyncClient, db: Database) -> Dict[str, Any]:
+    """Pobiera i synchronizuje Listę Ostrzeżeń Publicznych KNF."""
+    try:
+        resp = await http_request_with_retry(
+            client,
+            "GET",
+            KNF_WARNINGS_URL,
+            headers={
+                "Accept": "text/html,application/xhtml+xml,*/*",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
+            },
+            timeout=25.0,
+            max_retries=1,
+        )
+        if resp.status_code != 200:
+            msg = f"HTTP {resp.status_code}"
+            db.log_sanction_sync("KNF", "ERROR", 0, msg)
+            return {"source": "KNF", "status": "ERROR", "count": 0, "message": msg}
+
+        entries = parse_knf_html(resp.text)
+        if not entries:
+            msg = "Nie znaleziono tabeli ostrzeżeń na stronie KNF"
+            db.log_sanction_sync("KNF", "ERROR", 0, msg)
+            return {"source": "KNF", "status": "ERROR", "count": 0, "message": msg}
+
+        count = db.replace_sanctions_for_source("KNF", entries)
+        db.log_sanction_sync("KNF", "SUCCESS", count, f"Zsynchronizowano {count} podmiotów z Listy Ostrzeżeń KNF")
+        return {"source": "KNF", "status": "SUCCESS", "count": count, "message": "OK"}
+    except Exception as exc:
+        msg = f"{exc.__class__.__name__}: {exc}"
+        db.log_sanction_sync("KNF", "ERROR", 0, msg)
+        return {"source": "KNF", "status": "ERROR", "count": 0, "message": msg}
+
+
 async def sync_all_sanctions(client: httpx.AsyncClient, db: Database) -> List[Dict[str, Any]]:
-    """Synchronizuje wszystkie oficjalne listy sankcyjne."""
+    """Synchronizuje wszystkie oficjalne listy sankcyjne i ostrzeżenia publiczne."""
     seed_default_sanctions(db)
     mswia_res = await sync_mswia_sanctions(client, db)
     eu_res = await sync_eu_sanctions(client, db)
-    return [mswia_res, eu_res]
+    knf_res = await sync_knf_warnings(client, db)
+    return [mswia_res, eu_res, knf_res]

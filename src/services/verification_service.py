@@ -537,11 +537,13 @@ class VerificationService:
         )
         sankcje_mswia = any(h.source in ("MSWIA", "LOCAL_SEED") for h in sanction_hits)
         sankcje_ue = any(h.source in ("EU", "LOCAL_SEED") for h in sanction_hits)
-        sankcje_inne = any(h.source not in ("MSWIA", "EU", "LOCAL_SEED") for h in sanction_hits)
+        sankcje_knf = any(h.source == "KNF" for h in sanction_hits)
+        sankcje_inne = any(h.source not in ("MSWIA", "EU", "LOCAL_SEED", "KNF") for h in sanction_hits)
         
         source_labels = {
             "MSWIA": "Lista MSWiA (Polska)",
             "EU": "Lista Sankcyjna UE",
+            "KNF": "Lista Ostrzeżeń Publicznych KNF",
             "LOCAL_SEED": "Wykaz sankcyjny MSWiA/UE",
         }
         sankcje_szczegoly = [
@@ -618,6 +620,7 @@ class VerificationService:
             beneficjenci_rzeczywisci=beneficjenci,
             sankcje_mswia=sankcje_mswia,
             sankcje_ue=sankcje_ue,
+            sankcje_knf=sankcje_knf,
             sankcje_inne=sankcje_inne,
             sankcje_trafienia=sanction_hits,
             sankcje_szczegoly=sankcje_szczegoly,

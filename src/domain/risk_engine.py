@@ -113,22 +113,44 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
 
     if exact_or_high_sanctions:
         score += 100
+        has_knf = any(h.source == "KNF" for h in exact_or_high_sanctions)
+        has_sanctions = any(h.source != "KNF" for h in exact_or_high_sanctions)
+
+        if has_knf and not has_sanctions:
+            title = f"Wpis na Liście Ostrzeżeń Publicznych KNF ({len(exact_or_high_sanctions)})"
+            legal_basis = "Art. 6b ustawy o nadzorze nad rynkiem finansowym / Kodeks karny"
+            rec = "BEZWZGLĘDNA BLOKADA: Wobec podmiotu złożono zawiadomienie o podejrzeniu popełnienia przestępstwa. Rozważ zgłoszenie GSP do GIIF."
+        elif has_knf and has_sanctions:
+            title = f"Trafienie na liście sankcyjnej oraz Liście Ostrzeżeń KNF ({len(exact_or_high_sanctions)})"
+            legal_basis = "Ustawa sankcyjna z 13.04.2022 r. / Art. 6b ustawy o nadzorze KNF"
+            rec = "BEZWZGLĘDNA BLOKADA: Zakaz udostępniania środków oraz podejrzenie przestępstwa finansowego."
+        else:
+            title = f"Trafienie na liście sankcyjnej ({len(exact_or_high_sanctions)})"
+            legal_basis = "Ustawa z 13.04.2022 r. (Dz.U. 2022 poz. 835) / Rozporządzenia Rady UE"
+            rec = "BEZWZGLĘDNA BLOKADA współpracy i zamrożenie/zakaz udostępniania środków."
+
         factors.append(
             RiskFactor(
                 code="SANCTIONS_HIT",
-                title=f"Trafienie na liście sankcyjnej ({len(exact_or_high_sanctions)})",
+                title=title,
                 severity=PoziomRyzykaAML.KRYTYCZNE_STOP,
                 points=100,
-                legal_basis="Ustawa z 13.04.2022 r. (Dz.U. 2022 poz. 835) / Rozporządzenia Rady UE",
-                recommendation="BEZWZGLĘDNA BLOKADA współpracy i zamrożenie/zakaz udostępniania środków.",
+                legal_basis=legal_basis,
+                recommendation=rec,
             )
         )
     elif possible_sanctions:
         score += 45
+        has_knf = any(h.source == "KNF" for h in possible_sanctions)
+        if has_knf:
+            title = f"Potencjalna zbieżność z Listą Ostrzeżeń Publicznych KNF / Sankcji ({len(possible_sanctions)})"
+        else:
+            title = f"Potencjalna zbieżność z listą sankcyjną ({len(possible_sanctions)})"
+
         factors.append(
             RiskFactor(
                 code="SANCTIONS_POSSIBLE_MATCH",
-                title=f"Potencjalna zbieżność z listą sankcyjną ({len(possible_sanctions)})",
+                title=title,
                 severity=PoziomRyzykaAML.WYSOKIE,
                 points=45,
                 legal_basis="Art. 34 i 35 ustawy AML",

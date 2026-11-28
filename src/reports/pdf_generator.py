@@ -252,10 +252,11 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
 
     mswia_txt = '<font color="#DC2626"><b>[✗] WPIS NA LIŚCIE MSWiA</b></font>' if card.sankcje_mswia else '<font color="#15803D">✓ Czysty (MSWiA)</font>'
     ue_txt = '<font color="#DC2626"><b>[✗] WPIS NA LIŚCIE UE</b></font>' if card.sankcje_ue else '<font color="#15803D">✓ Czysty (UE)</font>'
+    knf_txt = '<font color="#DC2626"><b>[✗] OSTRZEŻENIE KNF!</b></font>' if card.sankcje_knf else '<font color="#15803D">✓ Czysty (KNF)</font>'
 
-    has_sanctions = bool(card.sankcje_mswia or card.sankcje_ue or card.sankcje_inne)
+    has_sanctions = bool(card.sankcje_mswia or card.sankcje_ue or card.sankcje_knf or card.sankcje_inne)
     if has_sanctions and card.crbr_status == "ZGODNY":
-        crbr_display_status = '<font color="#DC2626"><b>Zgłoszony w CRBR (WYKRYTO SANKCJE!)</b></font>'
+        crbr_display_status = '<font color="#DC2626"><b>Zgłoszony w CRBR (WYKRYTO SANKCJE / KNF!)</b></font>'
     else:
         crbr_display_status = f"<b>{_esc(card.crbr_status)}</b>"
 
@@ -267,7 +268,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
             [Paragraph("CRBR / UBO:", cell_bold), Paragraph(f"{crbr_display_status} • {_esc(ubo_txt)}", cell_norm)],
             [Paragraph("Status VAT / VIES:", cell_bold), Paragraph(f"{_esc(card.status_vat)} • MF Request ID: <code>{_esc(card.mf_request_id or 'Brak')}</code>", cell_norm)],
             [Paragraph("Rachunek bankowy:", cell_bold), Paragraph(rach_txt, cell_norm)],
-            [Paragraph("Listy sankcyjne:", cell_bold), Paragraph(f"{mswia_txt} &nbsp;|&nbsp; {ue_txt}", cell_norm)],
+            [Paragraph("Sankcje & Ostrzeżenia KNF:", cell_bold), Paragraph(f"{mswia_txt} &nbsp;|&nbsp; {ue_txt} &nbsp;|&nbsp; {knf_txt}", cell_norm)],
             [Paragraph("Status PEP:", cell_bold), Paragraph("TAK (Wymagane wzmożone środki)" if card.status_pep else "NIE", cell_norm)],
         ],
         colWidths=[140, 385],

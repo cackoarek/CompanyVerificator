@@ -155,9 +155,10 @@ class VerificationCard:
     crbr_status: str = "NIE_DOTYCZY"  # ZGODNY | ROZBIEZNOSCI | BRAK_WPISU | NIE_DOTYCZY | NIE_DOTYCZY_ZAGRANICZNA | BLAD_POLACZENIA
     beneficjenci_rzeczywisci: List[str] = field(default_factory=list)
 
-    # 3. Listy sankcyjne
+    # 3. Listy sankcyjne i ostrzeżenia publiczne (MSWiA / UE / KNF)
     sankcje_mswia: bool = False
     sankcje_ue: bool = False
+    sankcje_knf: bool = False
     sankcje_inne: bool = False
     sankcje_trafienia: List[SanctionHit] = field(default_factory=list)
     sankcje_szczegoly: List[str] = field(default_factory=list)

@@ -9,7 +9,11 @@ from src.providers.crbr_client import fetch_crbr_beneficiaries
 from src.providers.krs_client import fetch_krs_odpis
 from src.providers.mf_white_list import check_mf_bank_account, fetch_mf_white_list
 from src.providers.sanctions.matcher import match_sanctions
-from src.providers.sanctions.sync_service import parse_eu_sanctions_xml, parse_mswia_html
+from src.providers.sanctions.sync_service import (
+    parse_eu_sanctions_xml,
+    parse_knf_html,
+    parse_mswia_html,
+)
 from src.providers.vies_client import check_vies_vat
 
 
@@ -160,6 +164,27 @@ def test_sanctions_parsers_and_matcher():
     assert mswia_entries[0]["nip"] == "5252877567"
     assert mswia_entries[0]["krs"] == "0000340774"
 
+    knf_html = """
+    <table>
+      <tbody>
+        <tr>
+          <td>1.</td>
+          <td>Piramida Finansowa Sp. z o.o.</td>
+          <td>NIP 5260000001 KRS 0000123456</td>
+          <td>Prokuratura Okręgowa w Warszawie</td>
+          <td>-</td>
+          <td>Zawiadomienie z art. 171 ust. 1 ustawy Prawo bankowe.</td>
+        </tr>
+      </tbody>
+    </table>
+    """
+    knf_entries = parse_knf_html(knf_html)
+    assert len(knf_entries) == 1
+    assert knf_entries[0]["name"] == "Piramida Finansowa Sp. z o.o."
+    assert knf_entries[0]["nip"] == "5260000001"
+    assert knf_entries[0]["krs"] == "0000123456"
+    assert "Prawo bankowe" in knf_entries[0]["reason"]
+
     hits = match_sanctions(
         nip="5252877567",
         krs=None,
@@ -168,7 +193,8 @@ def test_sanctions_parsers_and_matcher():
         entries=[
             {"source": "MSWIA", "entry_type": "ENTITY", "name": "Evil Corp", "nip": "5252877567", "krs": None, "aliases": [], "reason": "Lista MSWiA"},
             {"source": "EU", "entry_type": "PERSON", "name": "Ivan Petrovich Testov", "nip": None, "krs": None, "aliases": [], "reason": "EU Reg"},
+            {"source": "KNF", "entry_type": "ENTITY", "name": "Piramida Finansowa", "nip": "5260000001", "krs": None, "aliases": [], "reason": "KNF alert"},
         ],
     )
-    assert any(h.match_type == "NIP" and h.confidence == "EXACT" for h in hits)
-    assert any(h.match_type == "PERSON" and h.confidence == "HIGH" for h in hits)
+    assert any(h.match_type == "NIP" and h.confidence == "EXACT" and h.source == "MSWIA" for h in hits)
+    assert any(h.match_type == "PERSON" and h.confidence == "HIGH" and h.source == "EU" for h in hits)
