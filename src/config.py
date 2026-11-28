@@ -66,9 +66,14 @@ KNF_WARNINGS_URL = os.getenv(
     "https://www.knf.gov.pl/dla_konsumenta/ostrzezenia_publiczne",
 ).strip()
 
+# Krajowy Rejestr Zadłużonych (KRZ) – opcjonalna zewnętrzna bramka API
+KRZ_API_URL = os.getenv("CV_KRZ_API_URL", "").strip()
+KRZ_API_KEY = os.getenv("CV_KRZ_API_KEY", "").strip()
+
 # Uprawnienia do usuwania wpisów i czyszczenia historii (Delete)
 ALLOW_DELETION = os.getenv("CV_ALLOW_DELETION", "true").lower() in ("1", "true", "yes")
 
 # Strefa czasowa aplikacji (np. Europe/Warsaw)
 APP_TIMEZONE = os.getenv("CV_TIMEZONE", os.getenv("TZ", "Europe/Warsaw")).strip() or "Europe/Warsaw"
+
 

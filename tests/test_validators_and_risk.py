@@ -258,6 +258,7 @@ def test_public_companies_dictionary_and_legal_forms():
     assert eval_pzu.eligible_for_simplified_cdd is True
     assert "GPW" in eval_pzu.display_name
 
+
     # 5. Zwykła mała spółka akcyjna niepubliczna
     eval_private_sa = evaluate_legal_form(
         forma_prawna="SPÓŁKA AKCYJNA",
@@ -267,5 +268,76 @@ def test_public_companies_dictionary_and_legal_forms():
     )
     assert eval_private_sa.form_type == LegalFormType.COMMERCIAL_COMPANY_KRS
     assert eval_private_sa.exempt_from_crbr is False
+
+
+def test_krz_parser_and_risk_evaluation():
+    from src.providers.krz_client import parse_krs_dzial6_insolvency
+    from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
+    from src.domain.enums import PoziomRyzykaAML
+
+    # 1. Test parsera Działu 6 KRS
+    sample_dzial6_krs = {
+        "odpis": {
+            "dane": {
+                "dzial6": {
+                    "postepowanieUpadlosciowe": [
+                        {
+                            "informacjaOOgloszeniuUpadlosci": {
+                                "organWydajacy": "SĄD REJONOWY DLA M.ST. WARSZAWY X WYDZIAŁ GOSPODARCZY",
+                                "sygnatura": "WA1M/GUp/123/2025",
+                                "data": "2025-06-10",
+                            },
+                            "sposobProwadzeniaPostepowania": "LIKWIDACYJNE",
+                            "daneSyndyka": [
+                                {
+                                    "imiona": {"imie": "Jan"},
+                                    "nazwisko": {"nazwiskoICzlon": "Kowalski"},
+                                }
+                            ],
+                        }
+                    ],
+                    "postepowanieRestrukturyzacyjne": [
+                        {
+                            "sygnaturaAkt": "WA1M/GR/45/2024",
+                            "organSadowyLubInny": "SĄD REJONOWY DLA M.ST. WARSZAWY",
+                            "dataWszczeciaLubOtwarcia": "2024-02-15",
+                        }
+                    ],
+                }
+            }
+        }
+    }
+
+    parsed = parse_krs_dzial6_insolvency(sample_dzial6_krs)
+    assert parsed["has_insolvency"] is True
+    assert parsed["has_restructuring"] is True
+    assert parsed["status"] == "POSTEPOWANIE_UPADLOSCIOWE"
+    assert len(parsed["wpisy"]) == 2
+    assert "WA1M/GUp/123/2025" in parsed["opisy"][0]
+    assert "Jan Kowalski" in parsed["opisy"][0]
+
+    # 2. Test silnika ryzyka dla KRZ (upadłość: +60 pkt)
+    inp = RiskEvaluationInput(
+        is_foreign=False,
+        status_rejestru="AKTYWNY",
+        upadlosc_lub_likwidacja=True,
+        platnik_vat_czynny=True,
+        status_vat="Czynny",
+        vies_valid=None,
+        status_rachunku=StatusRachunkuBankowego.NIE_PODANO,
+        kwota_transakcji=None,
+        crbr_status="ZGODNY",
+        sanction_hits=[],
+        status_pep=False,
+        blad_polaczenia=False,
+        niekompletne_zrodla=[],
+        krz_status="POSTEPOWANIE_UPADLOSCIOWE",
+        krz_szczegoly=parsed["opisy"],
+    )
+    score, factors, level, decision, _, _, _ = evaluate_risk(inp)
+    assert any(f.code == "INSOLVENCY_PROCEEDINGS" for f in factors)
+    assert level in (PoziomRyzykaAML.WYSOKIE, PoziomRyzykaAML.KRYTYCZNE_STOP)
+    assert score >= 60
+
 
 

@@ -79,6 +79,8 @@ class RiskEvaluationInput:
     reprezentacja: Optional[List[str]] = None
     kanal_relacji: KanalRelacji = KanalRelacji.ZDALNIE
     address_occurrences_in_db: int = 1
+    krz_status: str = "CZYSTY"
+    krz_szczegoly: Optional[List[str]] = None
 
 
 def get_entity_age_days(data_str: Optional[str]) -> Optional[int]:
@@ -173,8 +175,46 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
             )
         )
 
-    # 3. Status rejestru (wykreślony / zawieszony / upadłość / likwidacja)
-    if inp.upadlosc_lub_likwidacja:
+    # 3. Status rejestru i niewypłacalność (KRZ / Upadłość / Restrukturyzacja / Likwidacja)
+    if inp.krz_status == "POSTEPOWANIE_UPADLOSCIOWE":
+        score += 60
+        szczegol = f": {inp.krz_szczegoly[0]}" if inp.krz_szczegoly else ""
+        factors.append(
+            RiskFactor(
+                code="INSOLVENCY_PROCEEDINGS",
+                title=f"W toku postępowanie upadłościowe (KRZ / KRS Dział 6){szczegol}",
+                severity=PoziomRyzykaAML.WYSOKIE,
+                points=60,
+                legal_basis="Ustawa z dn. 28.02.2003 r. Prawo upadłościowe / KRZ",
+                recommendation="Wstrzymaj bezpośrednie płatności. Weryfikacja umocowania syndyka masy upadłości i zgoda sędziego-komisarza.",
+            )
+        )
+    elif inp.krz_status == "RESTRUKTURYZACJA":
+        score += 40
+        szczegol = f": {inp.krz_szczegoly[0]}" if inp.krz_szczegoly else ""
+        factors.append(
+            RiskFactor(
+                code="RESTRUCTURING_PROCEEDINGS",
+                title=f"W toku postępowanie restrukturyzacyjne (KRZ / KRS Dział 6){szczegol}",
+                severity=PoziomRyzykaAML.WYSOKIE,
+                points=40,
+                legal_basis="Ustawa z dn. 15.05.2015 r. Prawo restrukturyzacyjne / KRZ",
+                recommendation="Zalecane transakcje wyłącznie z przedpłatą 100%. Weryfikacja zgody nadzorcy sądowego lub zarządcy.",
+            )
+        )
+    elif inp.krz_status == "BEZSKUTECZNA_EGZEKUCJA":
+        score += 50
+        factors.append(
+            RiskFactor(
+                code="KRZ_ENFORCEMENT_DISMISSAL",
+                title="Wpis w Krajowym Rejestrze Zadłużonych: bezskuteczna egzekucja komornicza",
+                severity=PoziomRyzykaAML.WYSOKIE,
+                points=50,
+                legal_basis="Art. 10 ustawy o Krajowym Rejestrze Zadłużonych",
+                recommendation="Wysokie ryzyko niewypłacalności i braku majątku dłużnika. Odmowa kredytu kupieckiego.",
+            )
+        )
+    elif inp.krz_status == "LIKWIDACJA" or inp.upadlosc_lub_likwidacja:
         score += 60
         factors.append(
             RiskFactor(
@@ -183,7 +223,7 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
                 severity=PoziomRyzykaAML.WYSOKIE,
                 points=60,
                 legal_basis="Należyta staranność VAT (metodyka MF)",
-                recommendation="Wymagana pogłębiona weryfikacja możliwości realizacji świadczenia oraz umocowania syndyka/likwidatora.",
+                recommendation="Wymagana pogłębiona weryfikacja możliwości realizacji świadczenia oraz umocowania likwidatora/syndyka.",
             )
         )
     elif inp.status_rejestru in ("WYKRESLONY", "NIEZNALEZIONY"):

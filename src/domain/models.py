@@ -150,6 +150,9 @@ class VerificationCard:
     reprezentacja: List[str] = field(default_factory=list)
     wspolnicy: List[str] = field(default_factory=list)
     upadlosc_lub_likwidacja: bool = False
+    krz_status: str = "CZYSTY"  # CZYSTY | POSTEPOWANIE_UPADLOSCIOWE | RESTRUKTURYZACJA | LIKWIDACJA | BEZSKUTECZNA_EGZEKUCJA | NIE_DOTYCZY_ZAGRANICZNA | BLAD_POLACZENIA
+    krz_wpisy: List[Dict[str, Any]] = field(default_factory=list)
+    krz_szczegoly: List[str] = field(default_factory=list)
 
     # 2. Beneficjenci rzeczywiści (CRBR)
     crbr_status: str = "NIE_DOTYCZY"  # ZGODNY | ROZBIEZNOSCI | BRAK_WPISU | NIE_DOTYCZY | NIE_DOTYCZY_ZAGRANICZNA | BLAD_POLACZENIA

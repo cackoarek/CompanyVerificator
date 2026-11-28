@@ -254,6 +254,19 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
     ue_txt = '<font color="#DC2626"><b>[✗] WPIS NA LIŚCIE UE</b></font>' if card.sankcje_ue else '<font color="#15803D">✓ Czysty (UE)</font>'
     knf_txt = '<font color="#DC2626"><b>[✗] OSTRZEŻENIE KNF!</b></font>' if card.sankcje_knf else '<font color="#15803D">✓ Czysty (KNF)</font>'
 
+    if card.krz_status == "POSTEPOWANIE_UPADLOSCIOWE":
+        krz_txt = '<font color="#DC2626"><b>[!] POSTĘPOWANIE UPADŁOŚCIOWE W TOKU</b></font>'
+    elif card.krz_status == "RESTRUKTURYZACJA":
+        krz_txt = '<font color="#D97706"><b>[!] POSTĘPOWANIE RESTRUKTURYZACYJNE W TOKU</b></font>'
+    elif card.krz_status == "BEZSKUTECZNA_EGZEKUCJA":
+        krz_txt = '<font color="#D97706"><b>[!] BEZSKUTECZNA EGZEKUCJA KOMORNICZA</b></font>'
+    elif card.krz_status == "LIKWIDACJA":
+        krz_txt = '<font color="#DC2626"><b>[!] W LIKWIDACJI</b></font>'
+    elif card.krz_status == "NIE_DOTYCZY_ZAGRANICZNA":
+        krz_txt = '<font color="#64748B">Nie dotyczy (podmiot zagraniczny)</font>'
+    else:
+        krz_txt = '<font color="#15803D">✓ Czysty (brak wpisów o niewypłacalności)</font>'
+
     has_sanctions = bool(card.sankcje_mswia or card.sankcje_ue or card.sankcje_knf or card.sankcje_inne)
     if has_sanctions and card.crbr_status == "ZGODNY":
         crbr_display_status = '<font color="#DC2626"><b>Zgłoszony w CRBR (WYKRYTO SANKCJE / KNF!)</b></font>'
@@ -268,6 +281,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
             [Paragraph("CRBR / UBO:", cell_bold), Paragraph(f"{crbr_display_status} • {_esc(ubo_txt)}", cell_norm)],
             [Paragraph("Status VAT / VIES:", cell_bold), Paragraph(f"{_esc(card.status_vat)} • MF Request ID: <code>{_esc(card.mf_request_id or 'Brak')}</code>", cell_norm)],
             [Paragraph("Rachunek bankowy:", cell_bold), Paragraph(rach_txt, cell_norm)],
+            [Paragraph("Upadłość & KRZ:", cell_bold), Paragraph(krz_txt, cell_norm)],
             [Paragraph("Sankcje & Ostrzeżenia KNF:", cell_bold), Paragraph(f"{mswia_txt} &nbsp;|&nbsp; {ue_txt} &nbsp;|&nbsp; {knf_txt}", cell_norm)],
             [Paragraph("Status PEP:", cell_bold), Paragraph("TAK (Wymagane wzmożone środki)" if card.status_pep else "NIE", cell_norm)],
         ],
@@ -312,6 +326,30 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
             )
         )
         elements.extend([t_sanc, Spacer(1, 8)])
+
+    # Sekcja szczegółów postępowań upadłościowych i restrukturyzacyjnych KRZ w PDF (jeśli wykryto)
+    if card.krz_szczegoly:
+        elements.extend([_section_bar("SZCZEGÓŁY POSTĘPOWAŃ UPADŁOŚCIOWYCH I RESTRUKTURYZACYJNYCH (KRZ / DZIAŁ 6 KRS)", sec_hdr), Spacer(1, 3)])
+        krz_rows = [[Paragraph("Ujawnione wpisy sądowe / sygnatury akt", cell_bold)]]
+        for op in card.krz_szczegoly:
+            krz_rows.append([Paragraph(f'<font color="#B45309"><b>[⚖️]</b></font> {_esc(op)}', cell_norm)])
+        t_krz = Table(krz_rows, colWidths=[525])
+        t_krz.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FEF3C7")),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#FFFBEB")),
+                    ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#D97706")),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#FDE68A")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
+        elements.extend([t_krz, Spacer(1, 8)])
 
     # 5. Sekcja 3: Czynniki ryzyka
     if card.risk_factors:

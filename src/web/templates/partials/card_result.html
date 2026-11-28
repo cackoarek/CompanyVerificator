@@ -104,7 +104,7 @@
   {% endif %}
 
   <!-- Siatka rejestrów -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
       <span class="text-[10px] font-bold uppercase text-slate-400 block">1. Rejestr (KRS / CEIDG / VIES)</span>
       <div class="font-bold {% if karta.status_rejestru == 'AKTYWNY' %}text-emerald-700{% elif karta.status_rejestru in ['BLAD_POLACZENIA', 'MF_NIEDOSTEPNY_CHWILOWO'] %}text-amber-700{% elif karta.status_rejestru in ['WYKRESLONY', 'NIEZNALEZIONY'] %}text-red-700{% else %}text-slate-700{% endif %}">
@@ -151,7 +151,38 @@
 
     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
       <div class="flex items-center justify-between">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">4. Sankcje & Ostrzeżenia KNF</span>
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">4. Upadłość & KRZ</span>
+        <span class="text-[10px] text-slate-400 cursor-help" title="Krajowy Rejestr Zadłużonych (KRZ) oraz Dział 6 KRS — badanie postępowań upadłościowych, restrukturyzacyjnych, likwidacji i bezskutecznych egzekucji.">ℹ️</span>
+      </div>
+      <div class="font-bold {% if karta.krz_status == 'POSTEPOWANIE_UPADLOSCIOWE' %}text-red-700{% elif karta.krz_status in ['RESTRUKTURYZACJA', 'BEZSKUTECZNA_EGZEKUCJA'] %}text-amber-700{% elif karta.krz_status == 'LIKWIDACJA' %}text-red-600{% elif karta.krz_status == 'CZYSTY' %}text-emerald-700{% else %}text-slate-600{% endif %}">
+        {% if karta.krz_status == 'POSTEPOWANIE_UPADLOSCIOWE' %}
+          🛑 UPADŁOŚĆ W TOKU
+        {% elif karta.krz_status == 'RESTRUKTURYZACJA' %}
+          ⚠️ RESTRUKTURYZACJA
+        {% elif karta.krz_status == 'BEZSKUTECZNA_EGZEKUCJA' %}
+          ⚠️ BEZSKUTECZNA EGZEKUCJA
+        {% elif karta.krz_status == 'LIKWIDACJA' %}
+          ⚠️ W LIKWIDACJI
+        {% elif karta.krz_status == 'NIE_DOTYCZY_ZAGRANICZNA' %}
+          ℹ️ Nie dotyczy (zagraniczna)
+        {% else %}
+          🟢 Czysty (brak wpisów)
+        {% endif %}
+      </div>
+      <p class="text-[11px] text-slate-500 truncate" title="{{ karta.krz_szczegoly[0] if karta.krz_szczegoly else 'KRZ / KRS Dział 6' }}">
+        {% if karta.krz_szczegoly %}
+          {{ karta.krz_szczegoly[0] }}
+        {% elif karta.krz_status == 'CZYSTY' %}
+          Brak postępowań upadłościowych
+        {% else %}
+          Rejestr KRZ / Dział 6 KRS
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">5. Sankcje & Ostrzeżenia KNF</span>
         <span class="text-[10px] text-slate-400 cursor-help" title="Weryfikacja podmiotu oraz osób reprezentujących na listach sankcyjnych MSWiA (Polska), Unii Europejskiej oraz Liście Ostrzeżeń Publicznych KNF.">ℹ️</span>
       </div>
       <div class="font-bold {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_knf or karta.sankcje_inne %}text-red-700{% else %}text-emerald-700{% endif %}">
@@ -213,6 +244,46 @@
         <span class="text-red-600 font-bold text-sm leading-none mt-0.5">•</span>
         <div class="space-y-0.5">
           <div class="font-semibold text-red-950">{{ s }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Szczegóły postępowań upadłościowych i restrukturyzacyjnych KRZ (jeśli wystąpiły) -->
+  {% if karta.krz_szczegoly %}
+  <div class="p-4 bg-amber-50/90 border-2 border-amber-500 rounded-xl space-y-3 text-xs text-amber-950 shadow-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-b border-amber-200 pb-2">
+      <div class="font-bold text-amber-900 flex items-center gap-1.5 text-sm">
+        <span>⚖️</span>
+        <span>
+          {% if karta.krz_status == 'POSTEPOWANIE_UPADLOSCIOWE' %}
+            OSTRZEŻENIE COMPLIANCE: PODMIOT W STANIE UPADŁOŚCI (KRZ / KRS DZIAŁ 6)
+          {% elif karta.krz_status == 'RESTRUKTURYZACJA' %}
+            OSTRZEŻENIE COMPLIANCE: OTWARTE POSTĘPOWANIE RESTRUKTURYZACYJNE (KRZ)
+          {% elif karta.krz_status == 'BEZSKUTECZNA_EGZEKUCJA' %}
+            OSTRZEŻENIE COMPLIANCE: BEZSKUTECZNA EGZEKUCJA KOMORNICZA W KRZ
+          {% else %}
+            INFORMACJA O STANIE PRAWNYM: LIKWIDACJA / RESTRUKTURYZACJA
+          {% endif %}
+        </span>
+      </div>
+      <span class="px-2 py-0.5 rounded bg-amber-700 text-white font-bold text-[10px] w-fit">
+        PRAWO UPADŁOŚCIOWE I RESTRUKTURYZACYJNE
+      </span>
+    </div>
+    <p class="text-[11px] text-amber-900 leading-relaxed">
+      W rejestrze ujawniono formalne postępowania niewypłacalnościowe lub likwidacyjne.
+      Zgodnie z zasadami należytej staranności oraz ryzykiem utraty środków zaleca się <strong>wstrzymanie płatności bezpośrednich do rąk dłużnika</strong>, realizację transakcji wyłącznie za zgodą powołanego syndyka, zarządcy lub nadzorcy sądowego oraz stosowanie przedpłat przy sprzedaży towarów.
+    </p>
+    <div class="space-y-1.5">
+      <span class="font-bold text-[11px] text-amber-950 uppercase block">Ujawnione wpisy i sygnatury akt:</span>
+      {% for op in karta.krz_szczegoly %}
+      <div class="bg-white/90 border border-amber-300 rounded-lg p-2.5 font-sans text-[11px] text-slate-800 flex items-start gap-2 shadow-xs">
+        <span class="text-amber-600 font-bold text-sm leading-none mt-0.5">•</span>
+        <div class="space-y-0.5">
+          <div class="font-semibold text-amber-950">{{ op }}</div>
         </div>
       </div>
       {% endfor %}

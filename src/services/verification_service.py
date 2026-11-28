@@ -21,6 +21,7 @@ from src.providers.ceidg_client import fetch_ceidg_info
 from src.providers.crbr_client import compare_krs_and_crbr, fetch_crbr_beneficiaries, matches_masked
 from src.providers.gus_bir_client import GusBirClient
 from src.providers.krs_client import fetch_krs_odpis
+from src.providers.krz_client import check_krz_status
 from src.providers.mf_white_list import check_mf_bank_account, fetch_mf_white_list, fetch_mf_white_list_by_regon
 from src.providers.sanctions.matcher import match_sanctions
 from src.providers.sanctions.sync_service import seed_default_sanctions
@@ -349,7 +350,34 @@ class VerificationService:
             or (gus_data.get("data_powstania") if gus_data else None)
             or None
         )
-        upadlosc_lub_likwidacja = bool(krs_data.get("upadlosc_lub_likwidacja", False))
+        # Badanie Krajowego Rejestru Zadłużonych (KRZ) i postępowań upadłościowych / restrukturyzacyjnych
+        if is_foreign:
+            krz_res = {
+                "status": "NIE_DOTYCZY_ZAGRANICZNA",
+                "has_insolvency": False,
+                "has_restructuring": False,
+                "has_liquidation": False,
+                "has_enforcement_dismissal": False,
+                "wpisy": [],
+                "opisy": [],
+            }
+        else:
+            krz_res = await check_krz_status(
+                http_client,
+                nip=nip,
+                krs=krs,
+                krs_raw_data=krs_data.get("raw"),
+            )
+
+        upadlosc_lub_likwidacja = bool(
+            krs_data.get("upadlosc_lub_likwidacja", False)
+            or krz_res.get("has_insolvency")
+            or krz_res.get("has_restructuring")
+            or krz_res.get("has_liquidation")
+        )
+        krz_status = krz_res.get("status", "CZYSTY")
+        krz_wpisy = krz_res.get("wpisy", [])
+        krz_szczegoly = krz_res.get("opisy", [])
 
         if is_foreign:
             forma_prawna = f"PODMIOT ZAGRANICZNY ({country_code})"
@@ -584,6 +612,8 @@ class VerificationService:
                 reprezentacja=reprezentacja,
                 kanal_relacji=kanal_relacji,
                 address_occurrences_in_db=address_count,
+                krz_status=krz_status,
+                krz_szczegoly=krz_szczegoly,
             )
         )
 
@@ -616,6 +646,9 @@ class VerificationService:
             reprezentacja=reprezentacja,
             wspolnicy=wspolnicy,
             upadlosc_lub_likwidacja=upadlosc_lub_likwidacja,
+            krz_status=krz_status,
+            krz_wpisy=krz_wpisy,
+            krz_szczegoly=krz_szczegoly,
             crbr_status=crbr_status,
             beneficjenci_rzeczywisci=beneficjenci,
             sankcje_mswia=sankcje_mswia,

@@ -31,6 +31,14 @@ def render_card_markdown(card: VerificationCard) -> str:
     mswia_badge = "🚨 FIGURUJE NA LIŚCIE SANKCYJNEJ (STOP!)" if card.sankcje_mswia else "✅ Brak na liście MSWiA"
     ue_badge = "🚨 FIGURUJE NA LIŚCIE SANKCYJNEJ (STOP!)" if card.sankcje_ue else "✅ Brak na liście UE"
     knf_badge = "🚨 FIGURUJE NA LIŚCIE OSTRZEŻEŃ KNF (STOP!)" if card.sankcje_knf else "✅ Brak na liście ostrzeżeń KNF"
+    krz_badge = {
+        "POSTEPOWANIE_UPADLOSCIOWE": "🛑 POSTĘPOWANIE UPADŁOŚCIOWE W TOKU",
+        "RESTRUKTURYZACJA": "⚠️ POSTĘPOWANIE RESTRUKTURYZACYJNE W TOKU",
+        "BEZSKUTECZNA_EGZEKUCJA": "⚠️ BEZSKUTECZNA EGZEKUCJA KOMORNICZA",
+        "LIKWIDACJA": "⚠️ W LIKWIDACJI",
+        "NIE_DOTYCZY_ZAGRANICZNA": "ℹ️ Nie dotyczy (podmiot zagraniczny)",
+        "CZYSTY": "✅ Czysty (brak wpisów o niewypłacalności)",
+    }.get(card.krz_status, card.krz_status)
 
     rachunek_badge = {
         StatusRachunkuBankowego.ZGODNY_BIALA_LISTA: "✅ Potwierdzony na Białej Liście VAT (MF)",
@@ -119,8 +127,16 @@ def render_card_markdown(card: VerificationCard) -> str:
             f"* **Lista sankcyjna MSWiA:** {mswia_badge}",
             f"* **Lista sankcyjna UE:** {ue_badge}",
             f"* **Lista Ostrzeżeń Publicznych KNF:** {knf_badge}",
+            f"* **Krajowy Rejestr Zadłużonych (KRZ / Upadłość):** {krz_badge}",
         ]
     )
+
+    if card.krz_szczegoly:
+        lines.append("")
+        lines.append("### ⚖️ Postępowania upadłościowe / restrukturyzacyjne (KRZ / KRS Dział 6)")
+        for op in card.krz_szczegoly:
+            lines.append(f"* ⚖️ {op}")
+
 
     if card.sankcje_szczegoly:
         lines.append("")
