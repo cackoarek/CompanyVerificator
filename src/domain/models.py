@@ -170,6 +170,9 @@ class VerificationCard:
     status_vat: str = "Niezweryfikowany"
     platnik_vat_czynny: bool = False
     vies_valid: Optional[bool] = None
+    eori: Optional[str] = None
+    eori_valid: Optional[bool] = None
+    eori_status: Optional[str] = None  # AKTYWNY | BRAK | BLAD_POLACZENIA
     zweryfikowany_rachunek: Optional[str] = None
     status_rachunku: StatusRachunkuBankowego = StatusRachunkuBankowego.NIE_PODANO
     rachunki_zgloszone_mf: List[str] = field(default_factory=list)

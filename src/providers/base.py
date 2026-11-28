@@ -15,6 +15,7 @@ async def http_request_with_retry(
     *,
     headers: Optional[Dict[str, str]] = None,
     json_body: Optional[Dict[str, Any]] = None,
+    content: Optional[bytes] = None,
     timeout: float = HTTP_TIMEOUT_SECONDS,
     max_retries: int = 2,
 ) -> httpx.Response:
@@ -33,6 +34,7 @@ async def http_request_with_retry(
                 url=url,
                 headers=merged_headers,
                 json=json_body,
+                content=content,
                 timeout=timeout,
             )
             if resp.status_code in (429, 502, 503, 504) and attempt < max_retries:

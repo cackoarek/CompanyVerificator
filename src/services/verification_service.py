@@ -19,6 +19,7 @@ from src.domain.models import VerificationCard
 from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
 from src.providers.ceidg_client import fetch_ceidg_info
 from src.providers.crbr_client import compare_krs_and_crbr, fetch_crbr_beneficiaries, matches_masked
+from src.providers.eori_client import validate_eori
 from src.providers.gus_bir_client import GusBirClient
 from src.providers.krs_client import fetch_krs_odpis
 from src.providers.krz_client import check_krz_status
@@ -379,6 +380,19 @@ class VerificationService:
         krz_wpisy = krz_res.get("wpisy", [])
         krz_szczegoly = krz_res.get("opisy", [])
 
+        # Badanie systemu celnego EORI (Komisja Europejska – EOS)
+        eori_res: Dict[str, Any] = {}
+        if nip:
+            try:
+                eori_res = await validate_eori(http_client, nip=nip, country_code=country_code or "PL")
+                raw_evidence["eori"] = eori_res
+            except Exception as exc_eori:
+                eori_res = {"valid": False, "status_descr": "Błąd zapytania EORI", "blad_polaczenia": True}
+        eori_num = eori_res.get("eori")
+        eori_valid = eori_res.get("valid")
+        eori_status = "AKTYWNY" if eori_valid else ("BLAD_POLACZENIA" if eori_res.get("blad_polaczenia") else "BRAK")
+
+
         if is_foreign:
             forma_prawna = f"PODMIOT ZAGRANICZNY ({country_code})"
             zrodlo_rejestru = "VIES (VAT-UE)" if clf_kind == "EU_VAT" else f"Rejestr zagraniczny ({country_code})"
@@ -614,6 +628,8 @@ class VerificationService:
                 address_occurrences_in_db=address_count,
                 krz_status=krz_status,
                 krz_szczegoly=krz_szczegoly,
+                eori=eori_num,
+                eori_valid=eori_valid,
             )
         )
 
@@ -660,6 +676,9 @@ class VerificationService:
             status_vat=status_vat,
             platnik_vat_czynny=platnik_vat_czynny,
             vies_valid=vies_data.get("valid") if is_foreign else None,
+            eori=eori_num,
+            eori_valid=eori_valid,
+            eori_status=eori_status,
             zweryfikowany_rachunek=rachunek_bankowy.strip() if rachunek_bankowy else None,
             status_rachunku=status_rachunku,
             rachunki_zgloszone_mf=konta_mf,

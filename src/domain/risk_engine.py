@@ -81,6 +81,8 @@ class RiskEvaluationInput:
     address_occurrences_in_db: int = 1
     krz_status: str = "CZYSTY"
     krz_szczegoly: Optional[List[str]] = None
+    eori: Optional[str] = None
+    eori_valid: Optional[bool] = None
 
 
 def get_entity_age_days(data_str: Optional[str]) -> Optional[int]:
@@ -375,6 +377,25 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
                 points=40,
                 legal_basis="Art. 97 / art. 42 ustawy o VAT (transakcje wewnątrzwspólnotowe)",
                 recommendation="Wstrzymaj zastosowanie stawki 0% WDT lub zweryfikuj poprawność numeru VAT-UE.",
+            )
+        )
+
+    # 6a. Status celny EORI (Komisja Europejska – DG TAXUD)
+    # Jeśli podmiot operuje w branży wysokiego ryzyka (np. paliwa, elektronika, metale), a nie ma EORI:
+    has_high_risk_pkd = any(
+        (code.startswith("46.71") or code.startswith("46.72") or code.startswith("46.51") or code.startswith("46.52"))
+        for code in (inp.kody_pkd or [])
+    )
+    if inp.eori_valid is False and has_high_risk_pkd:
+        score += 15
+        factors.append(
+            RiskFactor(
+                code="EORI_NOT_ACTIVE_HIGH_RISK_TRADE",
+                title=f"Brak aktywnego numeru EORI w rejestrze celnym UE ({inp.eori or 'PL'})",
+                severity=PoziomRyzykaAML.SREDNIE,
+                points=15,
+                legal_basis="Unijny Kodeks Celny (Rozporządzenie UE 952/2013) / Procedura KYC",
+                recommendation="Podmiot deklaruje handel towarowy w branży wrażliwej, lecz nie posiada aktywnego numeru EORI do odpraw celnych. Zweryfikuj realność łańcucha dostaw.",
             )
         )
 

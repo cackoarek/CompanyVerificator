@@ -280,6 +280,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
             [Paragraph("Wspólnicy (KRS):", cell_bold), Paragraph(_esc(wsp_txt), cell_norm)],
             [Paragraph("CRBR / UBO:", cell_bold), Paragraph(f"{crbr_display_status} • {_esc(ubo_txt)}", cell_norm)],
             [Paragraph("Status VAT / VIES:", cell_bold), Paragraph(f"{_esc(card.status_vat)} • MF Request ID: <code>{_esc(card.mf_request_id or 'Brak')}</code>", cell_norm)],
+            [Paragraph("Status celny EORI (UE):", cell_bold), Paragraph(f'<font color="#15803D"><b>✓ Aktywny w systemie EOS</b></font> ({_esc(card.eori)})' if card.eori_valid else ('<font color="#64748B">Brak rejestracji celnej UE</font>' if card.eori_status == 'BRAK' else ('<font color="#D97706">Błąd usługi EORI UE</font>' if card.eori_status == 'BLAD_POLACZENIA' else 'Nie badano')), cell_norm)],
             [Paragraph("Rachunek bankowy:", cell_bold), Paragraph(rach_txt, cell_norm)],
             [Paragraph("Upadłość & KRZ:", cell_bold), Paragraph(krz_txt, cell_norm)],
             [Paragraph("Sankcje & Ostrzeżenia KNF:", cell_bold), Paragraph(f"{mswia_txt} &nbsp;|&nbsp; {ue_txt} &nbsp;|&nbsp; {knf_txt}", cell_norm)],

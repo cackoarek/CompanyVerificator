@@ -109,6 +109,7 @@ def render_card_markdown(card: VerificationCard) -> str:
             f"* **Rejestr Beneficjentów Rzeczywistych (CRBR):** {crbr_badge}",
             f"  * **UBO:** {', '.join(card.beneficjenci_rzeczywisci) if card.beneficjenci_rzeczywisci else 'Brak danych'}",
             f"* **Status VAT:** {card.status_vat}",
+            f"* **Status celny EORI (UE):** {'✅ Aktywny w systemie EOS (' + card.eori + ')' if card.eori_valid else ('⚪ Brak rejestracji w bazie celnej UE' if card.eori_status == 'BRAK' else ('⚠️ Błąd usługi EORI UE' if card.eori_status == 'BLAD_POLACZENIA' else '— Nie badano'))}",
             f"* **Status rachunku bankowego:** {rachunek_badge}",
             f"  * **Sprawdzany rachunek:** `{card.zweryfikowany_rachunek or 'Nie podano'}`",
             f"  * **MF Request ID:** `{card.mf_request_id or 'Brak'}`",

@@ -340,4 +340,59 @@ def test_krz_parser_and_risk_evaluation():
     assert score >= 60
 
 
+def test_eori_client_and_risk_evaluation():
+    from src.providers.eori_client import _parse_eori_response, build_eori_number
+    from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
+
+    # 1. Sprawdzenie formatowania numeru EORI
+    assert build_eori_number("5260251049", "PL") == "PL526025104900000"
+    assert build_eori_number("PL526025104900000", "PL") == "PL526025104900000"
+
+    # 2. Parsowanie odpowiedzi SOAP (Valid)
+    valid_xml = """<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/"><S:Body>
+    <ns0:validateEORIResponse xmlns:ns0="http://eori.ws.eos.dds.s/">
+    <return><requestDate>28/11/2026</requestDate><result>
+    <eori>PL526025104900000</eori><status>0</status><statusDescr>Valid</statusDescr>
+    <name>PRZYKLADOWA SPOLKA S.A.</name>
+    </result></return></ns0:validateEORIResponse></S:Body></S:Envelope>"""
+    parsed = _parse_eori_response(valid_xml, "PL526025104900000")
+    assert parsed["valid"] is True
+    assert parsed["status_code"] == 0
+    assert parsed["name"] == "PRZYKLADOWA SPOLKA S.A."
+
+    # 3. Parsowanie odpowiedzi SOAP (Invalid)
+    invalid_xml = """<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/"><S:Body>
+    <ns0:validateEORIResponse xmlns:ns0="http://eori.ws.eos.dds.s/">
+    <return><requestDate>28/11/2026</requestDate><result>
+    <eori>PL000000000000000</eori><status>1</status><statusDescr>Not valid</statusDescr>
+    </result></return></ns0:validateEORIResponse></S:Body></S:Envelope>"""
+    parsed_invalid = _parse_eori_response(invalid_xml, "PL000000000000000")
+    assert parsed_invalid["valid"] is False
+    assert parsed_invalid["status_code"] == 1
+
+    # 4. Ocena ryzyka: brak EORI przy handlu paliwami (PKD 46.71)
+    inp = RiskEvaluationInput(
+        is_foreign=False,
+        status_rejestru="AKTYWNY",
+        upadlosc_lub_likwidacja=False,
+        platnik_vat_czynny=True,
+        status_vat="Czynny",
+        vies_valid=None,
+        status_rachunku=StatusRachunkuBankowego.NIE_PODANO,
+        kwota_transakcji=None,
+        crbr_status="ZGODNY",
+        sanction_hits=[],
+        status_pep=False,
+        blad_polaczenia=False,
+        niekompletne_zrodla=[],
+        kody_pkd=["46.71.Z"],
+        eori="PL123456789000000",
+        eori_valid=False,
+    )
+    score, factors, _, _, _, _, _ = evaluate_risk(inp)
+    assert any(f.code == "EORI_NOT_ACTIVE_HIGH_RISK_TRADE" for f in factors)
+    assert score >= 15
+
+
+
 

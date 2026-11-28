@@ -212,6 +212,19 @@
         </p>
       </div>
 
+      <!-- Baza EORI (Komisja Europejska - DG TAXUD) -->
+      <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span class="text-base">🛃</span> Baza Celna EORI (Komisja Europejska – DG TAXUD EOS)
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-semibold">Cła &amp; Handel Globalny</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          Weryfikuje w czasie rzeczywistym status przedsiębiorcy w unijnym systemie EORI (Economic Operators Registration and Identification). Każdy podmiot prowadzący import towarów spoza UE (np. z Chin, USA) lub eksport musi posiadać unikalny numer EORI (w Polsce: <code>PL + NIP + 00000</code>). Brak rejestracji EORI przy deklarowanym handlu towarami importowanymi stanowi istotny sygnał ostrzegawczy KYC/AML (ryzyko fikcyjnego fakturowania lub „słupa”).
+        </p>
+      </div>
+
       <!-- GUS BIR REGON -->
       <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
         <div class="flex items-center justify-between">
@@ -358,6 +371,12 @@
             <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+25 pkt</td>
             <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
             <td class="py-2.5 px-3 text-slate-600">Walidacja ISO 7064 Modulo 97-10</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 px-3 font-medium">Brak aktywnego EORI przy handlu wrażliwym (paliwa, elektronika, złom)</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">+15 pkt</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-900 font-bold">ŚREDNIE</span></td>
+            <td class="py-2.5 px-3 text-slate-600">Unijny Kodeks Celny / Należyta staranność KYC</td>
           </tr>
           <tr class="bg-amber-50/50">
             <td class="py-2.5 px-3 font-medium text-amber-950">Firma niedawno założona: wpis do rejestru &lt; 6 miesięcy (&lt; 180 dni)</td>

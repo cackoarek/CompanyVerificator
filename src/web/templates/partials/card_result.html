@@ -120,14 +120,117 @@
       {% if karta.pkd_glowny %}<p class="text-[11px] text-slate-500 font-mono">PKD: {{ karta.pkd_glowny }}</p>{% endif %}
     </div>
 
-    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-      <span class="text-[10px] font-bold uppercase text-slate-400 block">2. Status VAT</span>
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1" x-data="{ showEoriModal: false }">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">2. Podatki VAT &amp; Cła EORI</span>
+        <button
+          type="button"
+          @click="showEoriModal = true"
+          class="text-[10px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer underline flex items-center gap-0.5"
+          title="Kliknij, aby zobaczyć jak interpretować status celny EORI"
+        >
+          <span>EORI</span>
+          <span class="text-xs">ℹ️</span>
+        </button>
+      </div>
       <div class="font-bold {% if karta.platnik_vat_czynny %}text-emerald-700{% elif 'chwilowo' in karta.status_vat or 'niedostępny' in karta.status_vat %}text-amber-700{% else %}text-amber-700{% endif %}">
         {{ karta.status_vat }}
       </div>
-      {% if karta.mf_request_id %}
+      <div class="flex items-center justify-between text-[11px] pt-0.5">
+        <span class="text-slate-500 font-medium">Status celny EORI:</span>
+        <span class="font-bold {% if karta.eori_valid %}text-emerald-700{% elif karta.eori_status == 'BRAK' %}text-slate-600{% elif karta.eori_status == 'BLAD_POLACZENIA' %}text-amber-700{% else %}text-slate-500{% endif %}">
+          {% if karta.eori_valid %}
+            ✅ Aktywny UE
+          {% elif karta.eori_status == 'BRAK' %}
+            ⚪ Brak rejestracji
+          {% elif karta.eori_status == 'BLAD_POLACZENIA' %}
+            ⚠️ Błąd usługi UE
+          {% else %}
+            —
+          {% endif %}
+        </span>
+      </div>
+      {% if karta.eori %}
+        <p class="text-[10px] text-slate-400 font-mono truncate" title="Numer EORI: {{ karta.eori }}">EORI: {{ karta.eori }}</p>
+      {% elif karta.mf_request_id %}
         <p class="text-[11px] text-slate-500 font-mono truncate" title="{{ karta.mf_request_id }}">MF ID: {{ karta.mf_request_id }}</p>
       {% endif %}
+
+      <!-- Modal interpretacji statusu EORI -->
+      <div
+        x-show="showEoriModal"
+        style="display: none;"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+        @keydown.escape.window="showEoriModal = false"
+      >
+        <div
+          class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 text-slate-800"
+          @click.away="showEoriModal = false"
+        >
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🇪🇺</span>
+              <h3 class="font-bold text-slate-900 text-sm sm:text-base">Jak interpretować status celny EORI?</h3>
+            </div>
+            <button
+              type="button"
+              @click="showEoriModal = false"
+              class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div class="space-y-3 text-xs leading-relaxed text-slate-600">
+            <p>
+              <strong>EORI (Economic Operators Registration and Identification)</strong> to unijny numer identyfikacyjny nadawany przez organy celne (w Polsce: Krajową Administrację Skarbową – KAS).
+            </p>
+
+            <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div class="flex items-start gap-2">
+                <span class="text-emerald-600 font-bold text-sm">✅</span>
+                <div>
+                  <strong class="text-slate-900 block">Status: Aktywny UE (Valid)</strong>
+                  <span>Podmiot jest oficjalnie zarejestrowany w centralnym systemie EOS Komisji Europejskiej. Posiada prawo do dokonywania odpraw celnych (import z Chin, USA, eksport poza UE) oraz procedur tranzytowych. Potwierdza realną operacyjność w obrocie międzynarodowym.</span>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-2 pt-2 border-t border-slate-200">
+                <span class="text-slate-500 font-bold text-sm">⚪</span>
+                <div>
+                  <strong class="text-slate-900 block">Status: Brak rejestracji (Not valid)</strong>
+                  <span>Podmiot nie został zarejestrowany w bazie celnej UE lub nie prowadzi handlu towarowego z krajami trzecimi.</span>
+                  <div class="text-[11px] text-amber-800 mt-1 bg-amber-50 p-2 rounded border border-amber-200">
+                    <strong>⚠️ Wskazówka Compliance:</strong> Jeśli firma deklaruje duży import towarów spoza UE (np. elektronika, paliwa, metale) lub wystawia faktury na towary importowane, a nie posiada numeru EORI, istnieje podwyższone ryzyko, że jest jedynie podmiotem fakturującym (pośrednikiem / „słupem”), a nie realnym importerem.
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-2 pt-2 border-t border-slate-200">
+                <span class="text-amber-600 font-bold text-sm">⚠️</span>
+                <div>
+                  <strong class="text-slate-900 block">Status: Błąd usługi UE (Temporary issue)</strong>
+                  <span>Serwer walidacji Komisji Europejskiej (DG TAXUD) jest chwilowo niedostępny lub przeciążony. Nie wpływa negatywnie na scoring podmiotu.</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-500">
+              Weryfikacja następuje w czasie rzeczywistym bezpośrednio z oficjalnego serwisu Komisji Europejskiej (DG TAXUD – EOS Validation Service).
+            </p>
+          </div>
+
+          <div class="pt-2 flex justify-end">
+            <button
+              type="button"
+              @click="showEoriModal = false"
+              class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs transition-colors"
+            >
+              Rozumiem, zamknij
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
