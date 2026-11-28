@@ -173,6 +173,9 @@ class VerificationCard:
     eori: Optional[str] = None
     eori_valid: Optional[bool] = None
     eori_status: Optional[str] = None  # AKTYWNY | BRAK | BLAD_POLACZENIA
+    mica_status: Optional[str] = None  # AUTORYZOWANY_CASP | OSTRZEZENIE_NIEAUTORYZOWANY | BRAK_WPISU | BLAD_POLACZENIA | NIE_DOTYCZY
+    mica_details: Optional[str] = None
+    mica_record: Optional[Dict[str, Any]] = None
     zweryfikowany_rachunek: Optional[str] = None
     status_rachunku: StatusRachunkuBankowego = StatusRachunkuBankowego.NIE_PODANO
     rachunki_zgloszone_mf: List[str] = field(default_factory=list)

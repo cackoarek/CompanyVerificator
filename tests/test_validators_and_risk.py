@@ -1,6 +1,7 @@
 """Testy jednostkowe walidatorów identyfikatorów oraz deterministycznego silnika ryzyka."""
 
 from decimal import Decimal
+import pytest
 
 from src.core.validators import (
     classify_identifier,
@@ -392,6 +393,110 @@ def test_eori_client_and_risk_evaluation():
     score, factors, _, _, _, _, _ = evaluate_risk(inp)
     assert any(f.code == "EORI_NOT_ACTIVE_HIGH_RISK_TRADE" for f in factors)
     assert score >= 15
+
+
+@pytest.mark.asyncio
+async def test_crypto_mica_and_risk_evaluation():
+    from src.providers.crypto_mica_client import CryptoMicaClient, _normalize_name
+
+    # 1. Test normalizacji nazw
+    assert _normalize_name("Revolut Digital Assets (Europe) Ltd") == "REVOLUT DIGITAL ASSETS EUROPE"
+    assert _normalize_name("Swipelux OÜ") == "SWIPELUX"
+    assert _normalize_name("KRYPTO SPÓŁKA Z O.O.") == "KRYPTO"
+
+    client = CryptoMicaClient()
+
+    # 2. Mockowanie danych CASP i Non-compliant
+    sample_casps = [
+        {
+            "name": "Revolut Digital Assets (Europe) Ltd",
+            "lei": "549300ET4IUR6RCZOL84",
+            "brand": "Revolut",
+            "state": "CY",
+            "authority": "Cyprus Securities and Exchange Commission (CySEC)",
+            "authorisationStatus": "active",
+        }
+    ]
+    sample_nc = [
+        {
+            "name": "Swipelux OÜ",
+            "authority": "Estonian Financial Supervision Authority (EFSA)",
+            "reason": "Unauthorised crypto-asset services",
+        }
+    ]
+
+    async def mock_casps(c):
+        return sample_casps
+
+    async def mock_nc(c):
+        return sample_nc
+
+    client._get_casps_data = mock_casps
+    client._get_non_compliant_data = mock_nc
+
+    import httpx
+    dummy_http = httpx.AsyncClient()
+
+    # 3. Weryfikacja podmiotu autoryzowanego (CASP)
+    res_casp = await client.verify_crypto_status(dummy_http, "Revolut Digital Assets (Europe) Ltd")
+    assert res_casp["status"] == "AUTORYZOWANY_CASP"
+    assert res_casp["is_casp"] is True
+    assert res_casp["is_non_compliant"] is False
+
+    # 4. Weryfikacja podmiotu z listy ostrzeżeń (Non-compliant)
+    res_nc = await client.verify_crypto_status(dummy_http, "Swipelux OÜ")
+    assert res_nc["status"] == "OSTRZEZENIE_NIEAUTORYZOWANY"
+    assert res_nc["is_non_compliant"] is True
+    assert res_nc["is_casp"] is False
+
+    # 5. Weryfikacja zwykłej firmy (Brak wpisu)
+    res_std = await client.verify_crypto_status(dummy_http, "ZWYKŁA FIRMA HANDLOWA SP Z O O")
+    assert res_std["status"] == "BRAK_WPISU"
+    assert res_std["is_casp"] is False
+
+    # 6. Ocena ryzyka: trafienie na liście ostrzeżeń MiCA -> KRYTYCZNE_STOP
+    inp_stop = RiskEvaluationInput(
+        is_foreign=False,
+        status_rejestru="AKTYWNY",
+        upadlosc_lub_likwidacja=False,
+        platnik_vat_czynny=True,
+        status_vat="Czynny",
+        vies_valid=None,
+        status_rachunku=StatusRachunkuBankowego.NIE_PODANO,
+        kwota_transakcji=None,
+        crbr_status="ZGODNY",
+        sanction_hits=[],
+        status_pep=False,
+        blad_polaczenia=False,
+        niekompletne_zrodla=[],
+        mica_status="OSTRZEZENIE_NIEAUTORYZOWANY",
+    )
+    score_stop, factors_stop, poziom_stop, decyzja_stop, _, _, _ = evaluate_risk(inp_stop)
+    assert score_stop == 100
+    assert any(f.code == "MICA_NON_COMPLIANT_WARNING" for f in factors_stop)
+    assert poziom_stop == PoziomRyzykaAML.KRYTYCZNE_STOP
+    assert decyzja_stop == DecyzjaWspolpracy.ODMOWA_WSPOLPRACY_STOP
+
+    # 7. Ocena ryzyka: autoryzowany CASP -> +20 pkt (EDD)
+    inp_casp = RiskEvaluationInput(
+        is_foreign=False,
+        status_rejestru="AKTYWNY",
+        upadlosc_lub_likwidacja=False,
+        platnik_vat_czynny=True,
+        status_vat="Czynny",
+        vies_valid=None,
+        status_rachunku=StatusRachunkuBankowego.NIE_PODANO,
+        kwota_transakcji=None,
+        crbr_status="ZGODNY",
+        sanction_hits=[],
+        status_pep=False,
+        blad_polaczenia=False,
+        niekompletne_zrodla=[],
+        mica_status="AUTORYZOWANY_CASP",
+    )
+    score_casp, factors_casp, _, _, _, _, _ = evaluate_risk(inp_casp)
+    assert any(f.code == "MICA_AUTHORIZED_CASP_EDD" for f in factors_casp)
+    assert score_casp >= 20
 
 
 

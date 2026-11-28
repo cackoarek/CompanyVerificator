@@ -285,29 +285,118 @@
       </p>
     </div>
 
-    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1" x-data="{ showMicaModal: false }">
       <div class="flex items-center justify-between">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">5. Sankcje & Ostrzeżenia KNF</span>
-        <span class="text-[10px] text-slate-400 cursor-help" title="Weryfikacja podmiotu oraz osób reprezentujących na listach sankcyjnych MSWiA (Polska), Unii Europejskiej oraz Liście Ostrzeżeń Publicznych KNF.">ℹ️</span>
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">5. Sankcje &amp; KNF / MiCA</span>
+        <button
+          type="button"
+          @click="showMicaModal = true"
+          class="text-[10px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer underline flex items-center gap-0.5"
+          title="Kliknij, aby zobaczyć jak interpretować status krypto MiCA / CASP oraz sankcje"
+        >
+          <span>MiCA</span>
+          <span class="text-xs">ℹ️</span>
+        </button>
       </div>
-      <div class="font-bold {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_knf or karta.sankcje_inne %}text-red-700{% else %}text-emerald-700{% endif %}">
-        {% if karta.sankcje_knf and not (karta.sankcje_mswia or karta.sankcje_ue) %}
+      <div class="font-bold {% if karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_knf or karta.sankcje_inne or karta.mica_status == 'OSTRZEZENIE_NIEAUTORYZOWANY' %}text-red-700{% elif karta.mica_status == 'AUTORYZOWANY_CASP' %}text-blue-700{% else %}text-emerald-700{% endif %}">
+        {% if karta.mica_status == 'OSTRZEZENIE_NIEAUTORYZOWANY' %}
+          🛑 NIELEGALNE KRYPTO (MiCA)!
+        {% elif karta.sankcje_knf and not (karta.sankcje_mswia or karta.sankcje_ue) %}
           🚨 OSTRZEŻENIE KNF!
         {% elif karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_inne %}
           🛑 TRAFIENIE SANKCYJNE
+        {% elif karta.mica_status == 'AUTORYZOWANY_CASP' %}
+          🪙 LICENCJONOWANY CASP (MiCA)
         {% else %}
-          🟢 Czysty (brak sankcji/KNF)
+          🟢 Czysty (brak sankcji/MiCA)
         {% endif %}
       </div>
-      <p class="text-[11px] text-slate-500">
-        {% if karta.sankcje_knf and not (karta.sankcje_mswia or karta.sankcje_ue) %}
+      <p class="text-[11px] text-slate-500 truncate" title="{{ karta.mica_details or 'MSWiA: czysty • UE: czysty • KNF: czysty' }}">
+        {% if karta.mica_status == 'OSTRZEZENIE_NIEAUTORYZOWANY' %}
+          <span class="text-red-600 font-semibold">Art. 110 MiCA: nieautoryzowany dostawca</span>
+        {% elif karta.sankcje_knf and not (karta.sankcje_mswia or karta.sankcje_ue) %}
           <span class="text-red-600 font-semibold">Podejrzenie przestępstwa (art. 6b KNF)</span>
         {% elif karta.sankcje_mswia or karta.sankcje_ue or karta.sankcje_inne %}
           <span class="text-red-600 font-semibold">Zakaz współpracy (art. 2 ustawy sankcyjnej)</span>
+        {% elif karta.mica_status == 'AUTORYZOWANY_CASP' %}
+          <span class="text-blue-700 font-semibold">Wymóg procedur EDD (sektor AML)</span>
         {% else %}
-          MSWiA: czysty • UE: czysty • KNF: czysty
+          MSWiA: czysty • KNF: czysty • MiCA: czysty
         {% endif %}
       </p>
+
+      <!-- Modal interpretacji statusu MiCA / CASP i nadzoru kryptoaktywów -->
+      <div
+        x-show="showMicaModal"
+        style="display: none;"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+        @keydown.escape.window="showMicaModal = false"
+      >
+        <div
+          class="bg-white rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl border border-slate-200 text-left"
+          @click.outside="showMicaModal = false"
+        >
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🪙</span>
+              <h3 class="font-bold text-slate-900 text-sm sm:text-base">Rejestr Kryptoaktywów MiCA (CASP) i Ostrzeżenia</h3>
+            </div>
+            <button
+              type="button"
+              @click="showMicaModal = false"
+              class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div class="space-y-3 text-xs leading-relaxed text-slate-600">
+            <p>
+              Od 30 grudnia 2024 r. w całej Unii Europejskiej obowiązuje <strong>Rozporządzenie MiCA (Markets in Crypto-Assets - UE 2023/1114)</strong>. Świadczenie usług w zakresie kryptoaktywów (wymiana, kantory, custody portfeli) wymaga unijnej licencji <strong>CASP (Crypto-Asset Service Provider)</strong> nadzorowanej w Polsce przez KNF, a centralnie w UE przez ESMA.
+            </p>
+
+            <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div class="flex items-start gap-2">
+                <span class="text-red-600 font-bold text-sm">🛑</span>
+                <div>
+                  <strong class="text-red-950 block">Status: Ostrzeżenie MiCA (art. 110 – Nieautoryzowany dostawca)</strong>
+                  <span>Podmiot został oficjalnie wpisany na unijną listę podmiotów nieposiadających uprawnień do świadczenia usług krypto. <strong>Zalecenie: Bezwzględna odmowa współpracy (STOP)</strong> z uwagi na skrajne ryzyko prania pieniędzy i naruszenia prawa UE.</span>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-2 pt-2 border-t border-slate-200">
+                <span class="text-blue-600 font-bold text-sm">🔷</span>
+                <div>
+                  <strong class="text-blue-950 block">Status: Autoryzowany CASP (Licencja UE / KNF)</strong>
+                  <span>Podmiot jest legalnym, zarejestrowanym dostawcą kryptoaktywów w rejestrze ESMA/KNF. Ze względu na profil branżowy instytucje obowiązane muszą stosować <strong>Wzmożone Środki Bezpieczeństwa Finansowego (EDD)</strong> zgodnie z art. 43 ustawy AML.</span>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-2 pt-2 border-t border-slate-200">
+                <span class="text-emerald-600 font-bold text-sm">🟢</span>
+                <div>
+                  <strong class="text-slate-900 block">Status: Standardowy podmiot (Brak wpisu)</strong>
+                  <span>Firma nie oferuje regulowanych usług kryptoaktywów ani nie widnieje na unijnych listach ostrzeżeń dotyczących krypto.</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-500">
+              CompanyVerificator automatycznie odpytuje unijny rejestr autoryzacji CASP oraz bazę ostrzeżeń ESMA/MiCA art. 110.
+            </p>
+          </div>
+
+          <div class="pt-2 flex justify-end">
+            <button
+              type="button"
+              @click="showMicaModal = false"
+              class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs transition-colors"
+            >
+              Rozumiem, zamknij
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -129,6 +129,7 @@ def render_card_markdown(card: VerificationCard) -> str:
             f"* **Lista sankcyjna UE:** {ue_badge}",
             f"* **Lista Ostrzeżeń Publicznych KNF:** {knf_badge}",
             f"* **Krajowy Rejestr Zadłużonych (KRZ / Upadłość):** {krz_badge}",
+            f"* **Rejestr kryptoaktywów MiCA (UE CASP):** {'🛑 OSTRZEŻENIE MICA (ART. 110) – NIEAUTORYZOWANY' if card.mica_status == 'OSTRZEZENIE_NIEAUTORYZOWANY' else ('🔷 AUTORYZOWANY CASP (wymóg EDD)' if card.mica_status == 'AUTORYZOWANY_CASP' else ('🟢 Brak wpisu (nie dotyczy)' if card.mica_status == 'BRAK_WPISU' else ('⚠️ Błąd połączenia' if card.mica_status == 'BLAD_POLACZENIA' else '— Nie badano')))}",
         ]
     )
 

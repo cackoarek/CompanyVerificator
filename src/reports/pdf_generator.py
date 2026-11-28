@@ -283,6 +283,7 @@ def generate_card_pdf(card: VerificationCard, output_path: Union[str, Path]) -> 
             [Paragraph("Status celny EORI (UE):", cell_bold), Paragraph(f'<font color="#15803D"><b>✓ Aktywny w systemie EOS</b></font> ({_esc(card.eori)})' if card.eori_valid else ('<font color="#64748B">Brak rejestracji celnej UE</font>' if card.eori_status == 'BRAK' else ('<font color="#D97706">Błąd usługi EORI UE</font>' if card.eori_status == 'BLAD_POLACZENIA' else 'Nie badano')), cell_norm)],
             [Paragraph("Rachunek bankowy:", cell_bold), Paragraph(rach_txt, cell_norm)],
             [Paragraph("Upadłość & KRZ:", cell_bold), Paragraph(krz_txt, cell_norm)],
+            [Paragraph("Rejestr krypto MiCA (UE):", cell_bold), Paragraph(f'<font color="#DC2626"><b>[!] OSTRZEŻENIE MICA (ART. 110)</b></font>' if card.mica_status == 'OSTRZEZENIE_NIEAUTORYZOWANY' else (f'<font color="#2563EB"><b>✓ Licencjonowany CASP</b></font> ({_esc(card.mica_details or "")})' if card.mica_status == 'AUTORYZOWANY_CASP' else ('<font color="#64748B">Brak wpisu (nie dotyczy krypto)</font>' if card.mica_status == 'BRAK_WPISU' else ('<font color="#D97706">Błąd usługi MiCA UE</font>' if card.mica_status == 'BLAD_POLACZENIA' else 'Nie badano'))), cell_norm)],
             [Paragraph("Sankcje & Ostrzeżenia KNF:", cell_bold), Paragraph(f"{mswia_txt} &nbsp;|&nbsp; {ue_txt} &nbsp;|&nbsp; {knf_txt}", cell_norm)],
             [Paragraph("Status PEP:", cell_bold), Paragraph("TAK (Wymagane wzmożone środki)" if card.status_pep else "NIE", cell_norm)],
         ],

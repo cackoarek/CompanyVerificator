@@ -19,6 +19,7 @@ from src.domain.models import VerificationCard
 from src.domain.risk_engine import RiskEvaluationInput, evaluate_risk
 from src.providers.ceidg_client import fetch_ceidg_info
 from src.providers.crbr_client import compare_krs_and_crbr, fetch_crbr_beneficiaries, matches_masked
+from src.providers.crypto_mica_client import validate_crypto_mica
 from src.providers.eori_client import validate_eori
 from src.providers.gus_bir_client import GusBirClient
 from src.providers.krs_client import fetch_krs_odpis
@@ -392,6 +393,30 @@ class VerificationService:
         eori_valid = eori_res.get("valid")
         eori_status = "AKTYWNY" if eori_valid else ("BLAD_POLACZENIA" if eori_res.get("blad_polaczenia") else "BRAK")
 
+        # Badanie rejestru kryptoaktywów MiCA / CASP (Rozporządzenie UE 2023/1114)
+        mica_res: Dict[str, Any] = {}
+        try:
+            mica_res = await validate_crypto_mica(
+                http_client,
+                nazwa=final_nazwa,
+                nip=nip,
+                kody_pkd=kody_pkd,
+            )
+            raw_evidence["mica_crypto"] = mica_res
+        except Exception as exc_mica:
+            mica_res = {
+                "status": "BLAD_POLACZENIA",
+                "is_casp": False,
+                "is_non_compliant": False,
+                "details": f"Błąd połączenia z rejestrem MiCA: {exc_mica}",
+                "casp_record": None,
+                "non_compliant_record": None,
+                "blad_polaczenia": True,
+            }
+        mica_status = mica_res.get("status", "BRAK_WPISU")
+        mica_details = mica_res.get("details")
+        mica_record = mica_res.get("casp_record") or mica_res.get("non_compliant_record")
+
 
         if is_foreign:
             forma_prawna = f"PODMIOT ZAGRANICZNY ({country_code})"
@@ -630,6 +655,8 @@ class VerificationService:
                 krz_szczegoly=krz_szczegoly,
                 eori=eori_num,
                 eori_valid=eori_valid,
+                mica_status=mica_status,
+                mica_details=mica_details,
             )
         )
 
@@ -679,6 +706,9 @@ class VerificationService:
             eori=eori_num,
             eori_valid=eori_valid,
             eori_status=eori_status,
+            mica_status=mica_status,
+            mica_details=mica_details,
+            mica_record=mica_record,
             zweryfikowany_rachunek=rachunek_bankowy.strip() if rachunek_bankowy else None,
             status_rachunku=status_rachunku,
             rachunki_zgloszone_mf=konta_mf,

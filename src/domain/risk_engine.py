@@ -83,6 +83,8 @@ class RiskEvaluationInput:
     krz_szczegoly: Optional[List[str]] = None
     eori: Optional[str] = None
     eori_valid: Optional[bool] = None
+    mica_status: Optional[str] = None
+    mica_details: Optional[str] = None
 
 
 def get_entity_age_days(data_str: Optional[str]) -> Optional[int]:
@@ -399,6 +401,32 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
             )
         )
 
+    # 6b. Status rejestru kryptoaktywów MiCA / CASP (Rozporządzenie UE 2023/1114)
+    if inp.mica_status == "OSTRZEZENIE_NIEAUTORYZOWANY":
+        score += 100
+        factors.append(
+            RiskFactor(
+                code="MICA_NON_COMPLIANT_WARNING",
+                title="Podmiot figuruje na unijnej liście ostrzeżeń MiCA (art. 110 – nieautoryzowany dostawca kryptoaktywów)",
+                severity=PoziomRyzykaAML.KRYTYCZNE_STOP,
+                points=100,
+                legal_basis="Art. 110 Rozporządzenia Parlamentu Europejskiego i Rady (UE) 2023/1114 (MiCA)",
+                recommendation="BEZWZGLĘDNA ODMOWA WSPÓŁPRACY: Podmiot świadczy usługi w zakresie kryptoaktywów bez wymaganego zezwolenia właściwego organu nadzorczego w UE (ESMA / KNF).",
+            )
+        )
+    elif inp.mica_status == "AUTORYZOWANY_CASP":
+        score += 20
+        factors.append(
+            RiskFactor(
+                code="MICA_AUTHORIZED_CASP_EDD",
+                title="Licencjonowany dostawca usług w zakresie kryptoaktywów (MiCA CASP – sektor podwyższonego ryzyka AML)",
+                severity=PoziomRyzykaAML.SREDNIE,
+                points=20,
+                legal_basis="Art. 43 ust. 2 pkt 1 ustawy AML / Rozporządzenie MiCA (UE) 2023/1114",
+                recommendation="Podmiot posiada ważną autoryzację unijną CASP. Jako dostawca usług krypto należy do sektora podwyższonego ryzyka prania pieniędzy – wymagane stosowanie Wzmożonych Środków Bezpieczeństwa Finansowego (EDD).",
+            )
+        )
+
     # 7. Status PEP (osoba zajmująca eksponowane stanowisko polityczne)
     if inp.status_pep:
         score += 30
@@ -482,13 +510,19 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
             )
 
     # Wyznaczenie końcowego poziomu ryzyka i decyzji
-    if exact_or_high_sanctions:
+    if exact_or_high_sanctions or inp.mica_status == "OSTRZEZENIE_NIEAUTORYZOWANY":
         poziom = PoziomRyzykaAML.KRYTYCZNE_STOP
         decyzja = DecyzjaWspolpracy.ODMOWA_WSPOLPRACY_STOP
-        uzasadnienie = (
-            "KONTRAHENT LUB OSOBA POWIĄZANA FIGURUJE NA LIŚCIE SANKCYJNEJ. "
-            "Obowiązuje bezwzględny zakaz współpracy i udostępniania środków finansowych."
-        )
+        if inp.mica_status == "OSTRZEZENIE_NIEAUTORYZOWANY":
+            uzasadnienie = (
+                "KONTRAHENT FIGURUJE NA UNIJNEJ LIŚCIE OSTRZEŻEŃ MICA (ART. 110). "
+                "Świadczenie usług w zakresie kryptoaktywów bez wymaganego zezwolenia – bezwzględny zakaz współpracy."
+            )
+        else:
+            uzasadnienie = (
+                "KONTRAHENT LUB OSOBA POWIĄZANA FIGURUJE NA LIŚCIE SANKCYJNEJ. "
+                "Obowiązuje bezwzględny zakaz współpracy i udostępniania środków finansowych."
+            )
     elif inp.blad_polaczenia:
         poziom = PoziomRyzykaAML.SREDNIE
         decyzja = DecyzjaWspolpracy.WYMAGA_WYJASNIENIA
