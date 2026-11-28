@@ -642,6 +642,7 @@ class VerificationService:
                 data_rozpoczecia=data_rozpoczecia,
                 data_wpisu_rejestru=data_wpisu_rejestru,
                 kody_pkd=kody_pkd,
+                nazwa=final_nazwa,
                 iban_invalid=iban_invalid,
                 rachunki_mf=konta_mf,
                 adres=final_adres,

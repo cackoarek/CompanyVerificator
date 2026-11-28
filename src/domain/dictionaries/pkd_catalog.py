@@ -60,7 +60,8 @@ HIGH_RISK_AML_PKD: Dict[str, Tuple[str, bool, str]] = {
     "26.30.Z": ("Produkcja sprzętu (tele)komunikacyjnego (w tym smartfony)", True, "Załącznik nr 15 ustawy o VAT"),
     "92.00.Z": ("Działalność związana z grami losowymi i zakładami wzajemnymi (hazard)", False, "Ustawa o grach hazardowych / KOR GIIF"),
     "66.12.Z": ("Działalność maklerska oraz kantory wymiany walut (obrót gotówkowy)", False, "KOR GIIF / Prawo dewizowe"),
-    # Działalność w zakresie walut wirtualnych (krypto) klasyfikowana w 64.19 / 64.99 / 66.19
+    "66.19.Z": ("Pozostała działalność wspomagająca usługi finansowe (w tym waluty wirtualne i fintech)", False, "KOR GIIF / Ustawa AML / Rozporządzenie MiCA"),
+    "64.99.Z": ("Pozostała finansowa działalność usługowa, gdzie indziej niesklasyfikowana (obrót aktywami cyfrowymi)", False, "KOR GIIF / Ustawa AML"),
 }
 
 # 3. Kody branż wrażliwych wg KOR GIIF i ustawy o VAT (3 pkt KYC / Filar 4)

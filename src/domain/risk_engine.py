@@ -70,6 +70,7 @@ class RiskEvaluationInput:
     data_rozpoczecia: Optional[str] = None
     data_wpisu_rejestru: Optional[str] = None
     kody_pkd: Optional[List[str]] = None
+    nazwa: Optional[str] = None
     iban_invalid: bool = False
     rachunki_mf: Optional[List[str]] = None
     adres: Optional[str] = None
@@ -426,6 +427,25 @@ def evaluate_risk(inp: RiskEvaluationInput) -> Tuple[int, List[RiskFactor], Pozi
                 recommendation="Podmiot posiada ważną autoryzację unijną CASP. Jako dostawca usług krypto należy do sektora podwyższonego ryzyka prania pieniędzy – wymagane stosowanie Wzmożonych Środków Bezpieczeństwa Finansowego (EDD).",
             )
         )
+    else:
+        # Sprawdzenie czy podmiot deklaruje / prowadzi działalność krypto, a nie figuruje w rejestrze MiCA CASP
+        nazwa_norm = (inp.nazwa or "").upper()
+        crypto_keywords = ("CRYPTO", "KRYPTO", "BITCOIN", "BINANCE", "BLOCKCHAIN", "KANTOR WALUT", "VIRTUAL CURRENCY", "COIN")
+        has_crypto_name = any(kw in nazwa_norm for kw in crypto_keywords)
+        has_crypto_pkd = any(code in ("66.19.Z", "64.99.Z", "66.12.Z") for code in (inp.kody_pkd or []))
+
+        if (has_crypto_name or (has_crypto_pkd and "FINAN" in nazwa_norm)) and inp.mica_status != "AUTORYZOWANY_CASP":
+            score += 35
+            factors.append(
+                RiskFactor(
+                    code="CRYPTO_ACTIVITY_WITHOUT_MICA_LICENSE",
+                    title="Prawdopodobna działalność krypto / fintech bez potwierdzonej unijnej licencji MiCA CASP",
+                    severity=PoziomRyzykaAML.WYSOKIE,
+                    points=35,
+                    legal_basis="Rozporządzenie Parlamentu Europejskiego i Rady (UE) 2023/1114 (MiCA) / Komunikat KAS ws. wygaśnięcia okresu przejściowego RDWW",
+                    recommendation="Profil podmiotu (nazwa lub kody PKD) wskazuje na świadczenie usług wymiany lub obrotu kryptoaktywami, jednak podmiot nie widnieje w rejestrze autoryzowanych CASP (ESMA / KNF). Po wygaśnięciu okresu przejściowego w UE wymagane jest wyjaśnienie legalności podstawy prawnej działania kontrahenta.",
+                )
+            )
 
     # 7. Status PEP (osoba zajmująca eksponowane stanowisko polityczne)
     if inp.status_pep:
